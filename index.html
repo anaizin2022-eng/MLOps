@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MLOps 星際學院 — 完全攻略版</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{overflow:hidden;background:#020510;font-family:'Segoe UI',sans-serif;color:#e2e8f0;height:100vh;touch-action:none;}
+#canvas-bg{position:fixed;inset:0;z-index:0;}
+
+/* Screens */
+.screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;transition:opacity 0.5s ease;}
+.hidden{display:none!important;}
+.fade-out{opacity:0;pointer-events:none;}
+
+/* Glass */
+.glass{background:rgba(8,12,28,0.88);backdrop-filter:blur(14px);border:1px solid rgba(139,92,246,0.26);border-radius:1rem;box-shadow:0 4px 30px rgba(0,0,0,0.7),inset 0 0 20px rgba(99,102,241,0.05);}
+.glass-sm{border-radius:0.6rem;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:rgba(10,15,35,0.5);}
+::-webkit-scrollbar-thumb{background:#5b21b6;border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:#7c3aed;}
+
+/* Neon text */
+.neon{text-shadow:0 0 8px rgba(167,139,250,0.8),0 0 20px rgba(167,139,250,0.3);}
+.neon-sky{text-shadow:0 0 8px rgba(56,189,248,0.8),0 0 20px rgba(56,189,248,0.3);}
+.neon-em{text-shadow:0 0 8px rgba(52,211,153,0.8),0 0 20px rgba(52,211,153,0.3);}
+
+/* Mission Cards */
+.m-card{background:rgba(10,15,35,0.92);border:1px solid rgba(99,102,241,0.22);border-radius:1.25rem;padding:1.2rem 1.4rem;cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden;}
+.m-card::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 50%,rgba(139,92,246,0.04));pointer-events:none;}
+.m-card:hover:not(.locked){transform:translateY(-4px) scale(1.02);border-color:rgba(167,139,250,0.55);box-shadow:0 10px 35px rgba(99,102,241,0.22);}
+.m-card.locked{opacity:0.32;cursor:not-allowed;filter:grayscale(0.6);}
+.m-card.done{border-color:rgba(52,211,153,0.38);}
+.m-card.done::after{background:linear-gradient(135deg,transparent 50%,rgba(52,211,153,0.04));}
+
+/* Lifecycle bar */
+.lc-wrap{background:rgba(4,6,18,0.95);border-bottom:1px solid rgba(99,102,241,0.14);padding:0.45rem 1rem;display:flex;align-items:center;gap:0.1rem;overflow-x:auto;flex-shrink:0;}
+.lc-node{display:flex;align-items:center;gap:0.25rem;padding:0.22rem 0.55rem;border-radius:999px;font-size:0.6rem;font-weight:700;white-space:nowrap;border:1px solid transparent;transition:all 0.3s;cursor:default;}
+.lc-node.cur{background:rgba(139,92,246,0.2);border-color:#7c3aed;color:#c4b5fd;box-shadow:0 0 10px rgba(139,92,246,0.3);}
+.lc-node.ok{background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.32);color:#6ee7b7;}
+.lc-node.dim{color:#3f4f6a;}
+.lc-sep{color:#1e2d45;font-size:0.75rem;padding:0 0.05rem;}
+
+/* Sliders */
+.sl{-webkit-appearance:none;width:100%;height:4px;background:#1e293b;border-radius:2px;outline:none;cursor:pointer;}
+.sl::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;cursor:pointer;transition:all 0.2s;}
+.sl::-webkit-slider-thumb:hover{transform:scale(1.2);}
+.sl.p::-webkit-slider-thumb{background:#a78bfa;box-shadow:0 0 8px rgba(167,139,250,0.6);}
+.sl.s::-webkit-slider-thumb{background:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,0.6);}
+.sl.a::-webkit-slider-thumb{background:#fb923c;box-shadow:0 0 8px rgba(251,146,60,0.6);}
+
+/* Toggle */
+.tog{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0;}
+.tog input{opacity:0;width:0;height:0;}
+.tog-sl{position:absolute;cursor:pointer;inset:0;background:#2d3748;border-radius:11px;transition:0.3s;}
+.tog-sl:before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#94a3b8;border-radius:50%;transition:0.3s;}
+input:checked+.tog-sl{background:#7c3aed;}
+input:checked+.tog-sl:before{transform:translateX(18px);background:#e9d5ff;}
+.tog.em input:checked+.tog-sl{background:#10b981;}
+
+/* Pipeline step */
+.ps{display:flex;align-items:center;gap:0.6rem;padding:0.5rem 0.7rem;background:rgba(18,26,52,0.6);border:1px solid rgba(99,102,241,0.18);border-radius:0.5rem;transition:all 0.2s;cursor:pointer;user-select:none;}
+.ps:hover{border-color:rgba(139,92,246,0.4);background:rgba(99,102,241,0.1);}
+.ps.on{background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.5);}
+.ps.ok{background:rgba(52,211,153,0.08);border-color:rgba(52,211,153,0.32);}
+
+/* Quiz options */
+.qo{width:100%;text-align:left;padding:0.75rem 1rem;margin-bottom:0.5rem;background:rgba(18,26,52,0.65);border:1px solid rgba(99,102,241,0.28);border-radius:0.5rem;color:#cbd5e1;font-size:0.85rem;cursor:pointer;transition:all 0.2s;}
+.qo:hover:not(:disabled){background:rgba(99,102,241,0.15);border-color:#7c3aed;transform:translateX(4px);}
+.qo.ok{background:rgba(16,185,129,0.15);border-color:#10b981;color:#6ee7b7;}
+.qo.bad{background:rgba(239,68,68,0.15);border-color:#ef4444;color:#fca5a5;}
+
+/* Modal */
+.mOv{position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;background:rgba(0,0,6,0.88);backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity 0.3s;}
+.mOv.open{opacity:1;pointer-events:auto;}
+.mBox{background:linear-gradient(135deg,rgba(16,10,36,0.98),rgba(6,6,18,1));border:1px solid rgba(139,92,246,0.48);border-radius:1.25rem;box-shadow:0 0 60px rgba(99,102,241,0.2);padding:1.75rem;max-width:560px;width:93%;transform:translateY(24px);transition:transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275);max-height:88vh;overflow-y:auto;}
+.mOv.open .mBox{transform:translateY(0);}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:0.4rem;padding:0.6rem 1.25rem;border-radius:0.55rem;font-weight:700;font-size:0.85rem;cursor:pointer;transition:all 0.2s;border:1px solid;}
+.btn:active{transform:scale(0.96);}
+.btn-p{background:rgba(109,40,217,0.38);border-color:#7c3aed;color:#e9d5ff;}
+.btn-p:hover:not(:disabled){background:rgba(109,40,217,0.65);box-shadow:0 0 18px rgba(124,58,237,0.35);}
+.btn-s{background:rgba(26,36,58,0.65);border-color:rgba(99,102,241,0.3);color:#94a3b8;}
+.btn-s:hover:not(:disabled){background:rgba(40,55,85,0.8);color:#e2e8f0;}
+.btn-g{background:rgba(5,120,90,0.3);border-color:#059669;color:#6ee7b7;}
+.btn-g:hover:not(:disabled){background:rgba(5,150,100,0.55);box-shadow:0 0 15px rgba(16,185,129,0.3);}
+.btn-a{background:rgba(146,64,14,0.3);border-color:#d97706;color:#fcd34d;}
+.btn-a:hover:not(:disabled){background:rgba(180,83,9,0.55);}
+.btn:disabled{opacity:0.5;cursor:not-allowed;}
+.w100{width:100%;justify-content:center;}
+
+/* Tags */
+.tag{font-size:0.6rem;font-weight:700;padding:0.14rem 0.48rem;border-radius:999px;display:inline-block;}
+
+/* XP Bar */
+.xpbar{height:6px;background:#1a2340;border-radius:3px;overflow:hidden;position:relative;}
+.xpfill{height:100%;background:linear-gradient(90deg,#6d28d9,#8b5cf6,#a78bfa);border-radius:3px;transition:width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);}
+
+/* Metric card & Status dot */
+.mc{background:rgba(10,16,38,0.75);border:1px solid rgba(99,102,241,0.18);border-radius:0.5rem;padding:0.5rem 0.75rem;}
+.sdot{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sdot.ok{background:#34d399;box-shadow:0 0 6px #34d399;}
+.sdot.warn{background:#fb923c;box-shadow:0 0 6px #fb923c;}
+.sdot.err{background:#f87171;box-shadow:0 0 6px #f87171;}
+.sdot.dim{background:#4b5563;}
+
+/* Responsive Layout for Mission Screen */
+.panel-container { flex:1; display:flex; gap:0.75rem; padding:0.75rem; overflow:hidden; }
+.panel-controls { width:290px; flex-shrink:0; padding:1rem; overflow-y:auto; }
+.panel-center { flex:1; display:flex; flex-direction:column; gap:0.75rem; overflow:hidden; min-width:0; }
+.panel-info { width:260px; flex-shrink:0; padding:1rem; overflow-y:auto; }
+
+@media (max-width: 900px) {
+  .panel-container { flex-direction:column; overflow-y:auto; padding-bottom: 2rem; touch-action: pan-y; }
+  .panel-controls, .panel-info { width:100%; flex:none; height:auto; overflow:visible; }
+  .panel-center { overflow:visible; }
+  .panel-viz { min-height: 400px; }
+  body { overflow-y: auto; } /* allow body scrolling on mobile */
+}
+
+/* Animations */
+@keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.fadein{animation:fadein 0.4s ease forwards;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.float{animation:float 4s ease-in-out infinite;}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 10px rgba(139,92,246,0.3);}50%{box-shadow:0 0 25px rgba(139,92,246,0.6);}}
+.pulse-glow{animation:pulseGlow 2s infinite;}
+
+.exp-row{display:grid;grid-template-columns:0.5fr 1fr 1fr 1fr 1fr;gap:0.25rem;padding:0.38rem 0.5rem;border-bottom:1px solid rgba(99,102,241,0.08);font-size:0.7rem;align-items:center;}
+.exp-row:last-child{border-bottom:none;}
+
+/* Scenarios & Strats */
+.scn{padding:0.65rem 0.85rem;background:rgba(16,24,50,0.6);border:1px solid rgba(99,102,241,0.2);border-radius:0.65rem;cursor:pointer;transition:all 0.22s;text-align:left;width:100%;}
+.scn:hover{border-color:rgba(139,92,246,0.5);background:rgba(99,102,241,0.1);}
+.scn.pick{border-color:#8b5cf6;background:rgba(139,92,246,0.14);box-shadow:0 0 14px rgba(139,92,246,0.2);}
+.sto{padding:0.5rem 0.75rem;background:rgba(16,24,50,0.6);border:1px solid rgba(99,102,241,0.2);border-radius:0.5rem;cursor:pointer;transition:all 0.2s;font-size:0.76rem;width:100%;text-align:left;}
+.sto:hover:not(:disabled){background:rgba(99,102,241,0.1); transform:translateX(3px);}
+.sto.ok{background:rgba(52,211,153,0.12);border-color:#10b981;color:#6ee7b7;}
+.sto.bad{background:rgba(239,68,68,0.1);border-color:#ef4444;color:#fca5a5;}
+
+/* Drag wheel */
+#drag-wheel{border:2px solid rgba(56,189,248,0.3);border-radius:50%;background:rgba(8,15,38,0.9);cursor:grab;position:relative;touch-action:none;}
+#drag-wheel:active{cursor:grabbing;}
+</style>
+</head>
+<body>
+
+<!-- 3D Background -->
+<div id="canvas-bg"></div>
+
+<!-- ===================== SCREEN: TITLE ===================== -->
+<div id="screen-title" class="screen" style="justify-content:center;align-items:center;background:rgba(2,5,16,0.6);backdrop-filter:blur(8px);">
+  <div class="text-7xl mb-6 float">🚀</div>
+  <h1 class="text-5xl md:text-6xl font-black neon mb-4 text-center" style="color:#a78bfa; letter-spacing: 2px;">MLOps 星際學院</h1>
+  <p class="text-lg md:text-xl text-center mb-10 px-4" style="color:#94a3b8; max-width: 600px;">
+    系統化掌握機器學習生產化全流程。<br>從資料清洗到模型監控，成為宇宙頂尖的 AI 領航員。
+  </p>
+  <button onclick="initGame()" class="btn btn-p pulse-glow text-lg px-8 py-4" style="border-radius: 1rem;">
+    🌌 啟動引擎開始訓練
+  </button>
+</div>
+
+<!-- ===================== SCREEN: MAP ===================== -->
+<div id="screen-map" class="screen hidden" style="overflow-y:auto; touch-action: pan-y;">
+  <div style="min-height:100vh;padding:2rem 1.5rem;display:flex;flex-direction:column;align-items:center;">
+    <!-- Header -->
+    <div class="text-center mb-8" style="margin-top:2vh;">
+      <h1 class="text-4xl font-black neon mb-2" style="color:#a78bfa;">任務地圖</h1>
+      <p class="text-sm" style="color:#64748b;">完成各階段測驗以解鎖下一關</p>
+      <div class="flex items-center gap-3 justify-center mt-5 bg-black/40 p-3 rounded-full border border-indigo-500/30">
+        <span class="text-xs font-bold" style="color:#a78bfa;">🏆 學院積分</span>
+        <div class="xpbar" style="width:200px;"><div id="map-xpbar" class="xpfill" style="width:0%;"></div></div>
+        <span id="map-xptext" class="text-xs font-bold w-16 text-right" style="color:#c4b5fd;">0 / 600</span>
+      </div>
+    </div>
+
+    <!-- MLOps Lifecycle Arrow -->
+    <div class="glass mb-8 hidden md:block" style="padding:0.7rem 1.2rem;max-width:900px;width:100%;">
+      <div class="flex items-center gap-2 flex-wrap justify-center">
+        <span class="text-xs font-black" style="color:#475569;">生命週期：</span>
+        <span class="tag text-sky-400 bg-sky-400/10 border border-sky-400/20">📊 DataOps</span><span class="text-slate-600">→</span>
+        <span class="tag text-purple-400 bg-purple-400/10 border border-purple-400/20">🧪 實驗追蹤</span><span class="text-slate-600">→</span>
+        <span class="tag text-orange-400 bg-orange-400/10 border border-orange-400/20">⚙️ CI/CD</span><span class="text-slate-600">→</span>
+        <span class="tag text-indigo-400 bg-indigo-400/10 border border-indigo-400/20">🚀 部署策略</span><span class="text-slate-600">→</span>
+        <span class="tag text-emerald-400 bg-emerald-400/10 border border-emerald-400/20">📡 監控</span><span class="text-slate-600">→</span>
+        <span class="tag text-rose-400 bg-rose-400/10 border border-rose-400/20">🔄 再訓練</span>
+      </div>
+    </div>
+
+    <!-- Mission Grid -->
+    <div id="mission-grid" class="grid gap-5 w-full" style="max-width:900px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));"></div>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: MISSION ===================== -->
+<div id="screen-mission" class="screen hidden" style="background:rgba(2,5,16,0.4);">
+  <!-- Lifecycle bar -->
+  <div class="lc-wrap" id="lc-bar">
+    <button onclick="exitMission()" class="hover:text-indigo-300 transition-colors" style="font-size:0.8rem;color:#8b5cf6;font-weight:700;margin-right:0.75rem;white-space:nowrap;background:none;border:none;cursor:pointer;">← 返回地圖</button>
+    <!-- nodes injected -->
+  </div>
+
+  <!-- Responsive 3-Panel Layout -->
+  <div class="panel-container">
+    <!-- LEFT: Controls -->
+    <div class="glass panel-controls" id="panel-controls"></div>
+
+    <!-- CENTER: Viz + Header -->
+    <div class="panel-center">
+      <div class="glass fadein" id="panel-header" style="padding:1rem;flex-shrink:0;"></div>
+      <div class="glass overflow-auto fadein" id="panel-viz" style="flex:1;padding:1rem;"></div>
+    </div>
+
+    <!-- RIGHT: Info/Concepts -->
+    <div class="glass fadein panel-info" id="panel-info"></div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: Quiz ===================== -->
+<div id="m-quiz" class="mOv">
+  <div class="mBox">
+    <div class="flex items-center gap-2 mb-4">
+      <div id="q-dots" class="flex gap-2"></div>
+      <span id="q-progress" class="text-sm font-bold ml-auto" style="color:#7c3aed;"></span>
+    </div>
+    <div class="flex gap-4 items-start mb-5">
+      <div id="q-avatar" class="text-4xl flex-shrink-0">🤖</div>
+      <div id="q-speech" class="text-sm p-4 rounded-xl rounded-tl-sm leading-relaxed" style="background:rgba(18,26,52,0.8);border:1px solid rgba(99,102,241,0.3);color:#e2e8f0;flex:1;"></div>
+    </div>
+    <div id="q-question" class="font-bold text-base text-white border-b pb-4 mb-4" style="border-color:rgba(99,102,241,0.2);"></div>
+    <div id="q-options" class="space-y-2"></div>
+    <div id="q-feedback" class="hidden mt-4 p-4 rounded-lg text-sm leading-relaxed"></div>
+    <div class="mt-5 flex gap-3">
+      <button id="q-next" class="btn btn-p w100 hidden py-3">下一題 →</button>
+      <button id="q-finish" class="btn btn-g pulse-glow w100 hidden py-3">✅ 完成測驗 ·結算 XP</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: Mission Complete ===================== -->
+<div id="m-complete" class="mOv">
+  <div class="mBox text-center">
+    <div id="mc-emoji" class="text-6xl mb-4 float">🏆</div>
+    <h2 class="text-3xl font-black mb-2" style="color:#a78bfa;">任務完成！</h2>
+    <div id="mc-subtitle" class="text-base mb-6" style="color:#94a3b8;"></div>
+    <div class="flex justify-center gap-6 mb-6">
+      <div class="mc text-center" style="min-width:100px;"><div id="mc-xp" class="text-3xl font-black" style="color:#fb923c;">+100</div><div class="text-xs mt-1" style="color:#64748b;">XP 獲得</div></div>
+      <div class="mc text-center" style="min-width:100px;"><div id="mc-score" class="text-3xl font-black" style="color:#34d399;"></div><div class="text-xs mt-1" style="color:#64748b;">正確率</div></div>
+    </div>
+    <div id="mc-summary" class="text-left mb-6 p-5 rounded-xl text-sm leading-relaxed" style="background:rgba(10,16,38,0.7);border:1px solid rgba(99,102,241,0.22);color:#cbd5e1;"></div>
+    <div id="mc-unlock-msg" class="text-base font-bold mb-6 pulse-glow inline-block px-4 py-2 rounded-full" style="color:#34d399; background: rgba(52,211,153,0.1);"></div>
+    <div class="flex gap-3">
+      <button onclick="closeMissionComplete()" class="btn btn-s w100 py-3">← 返回地圖</button>
+      <button id="mc-next-btn" class="btn btn-g w100 hidden py-3">前往下一關 🚀</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: MLOps Reference ===================== -->
+<div id="m-ref" class="mOv">
+  <div class="mBox">
+    <div class="flex items-center gap-3 mb-5 border-b border-indigo-500/30 pb-3">
+      <span class="text-2xl">📚</span>
+      <h3 class="text-xl font-black" style="color:#c4b5fd;flex:1;">MLOps 星際詞典</h3>
+      <button onclick="closeModal('m-ref')" class="hover:text-white transition-colors" style="color:#64748b;font-size:1.8rem;background:none;border:none;cursor:pointer;">&times;</button>
+    </div>
+    <div id="ref-body" class="space-y-6" style="color:#94a3b8;font-size:0.85rem;line-height:1.6;"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// SOUND ENGINE (Web Audio API)
+// ═══════════════════════════════════════════════════
+let actx = null;
+function initAudio() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === 'suspended') actx.resume();
+}
+function playSound(type) {
+  if (!actx || actx.state !== 'running') return;
+  try {
+    const osc = actx.createOscillator();
+    const gain = actx.createGain();
+    osc.connect(gain); gain.connect(actx.destination);
+    const now = actx.currentTime;
+    
+    if (type === 'click') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      osc.start(now); osc.stop(now + 0.1);
+    } else if (type === 'success') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(400, now);
+      osc.frequency.setValueAtTime(600, now + 0.1);
+      osc.frequency.setValueAtTime(800, now + 0.2);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.linearRampToValueAtTime(0, now + 0.4);
+      osc.start(now); osc.stop(now + 0.4);
+    } else if (type === 'fail') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(300, now);
+      osc.frequency.linearRampToValueAtTime(150, now + 0.3);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.linearRampToValueAtTime(0, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
+    } else if (type === 'warp') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(100, now);
+      osc.frequency.exponentialRampToValueAtTime(800, now + 0.8);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.2, now + 0.4);
+      gain.gain.linearRampToValueAtTime(0, now + 0.8);
+      osc.start(now); osc.stop(now + 0.8);
+    }
+  } catch (e) {}
+}
+
+// ═══════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════
+const MISSIONS = [
+  {
+    id:0, name:'DataOps 資料管線', icon:'📊', color:'sky', xp:100,
+    subtitle:'建立穩健的 ML 資料基礎設施',
+    tags:['資料版本控制','資料驗證','特徵工程','特徵商店'],
+    intro:'你的艦隊資料倉庫剛剛上線！在訓練任何 AI 導航模型之前，必須先建立穩定的資料管線——確保資料是乾淨的、有版本的、可重現的。',
+    concepts:[
+      {icon:'🗂️', k:'資料版本控制 (DVC)', v:'就像程式碼用 Git 管理，資料也需要版本控制。DVC 可以追蹤資料集、模型的版本，確保訓練可重現。'},
+      {icon:'✅', k:'資料驗證 (Great Expectations)', v:'在資料進入訓練前，用預先定義的規則自動檢查：欄位是否缺失？數值是否在合理範圍？'},
+      {icon:'🏪', k:'特徵商店 (Feature Store)', v:'統一管理特徵計算邏輯，避免訓練時與服務時特徵計算不一致（Training-Serving Skew）。'},
+      {icon:'📦', k:'資料分割策略', v:'時間序列資料需要時序切分，避免未來資料洩漏到訓練集（Data Leakage）。'},
+    ],
+    quizzes:[
+      {
+        avatar:'👨‍🔬', speech:'首席資料科學家：你知道為什麼我們的模型結果一直無法重現嗎？',
+        q:'訓練實驗結果無法重現，最常見的根本原因是？',
+        opts:['A. GPU 顯卡溫度太高影響計算','B. 資料集未版本控制，重訓時資料已被更新','C. Python 版本不一致','D. 模型架構設計有問題'],
+        ans:1, fb:'✅ 正確！資料版本控制 (DVC) 是解決重現性的核心。沒有鎖定資料版本，每次訓練可能使用不同的資料快照，結果自然難以重現。'
+      },
+      {
+        avatar:'🤖', speech:'NavCore：掃描發現輸入資料有 15% 的 null 值！這會影響模型訓練品質。',
+        q:'以下哪個工具最適合在資料進入訓練流程前，自動驗證資料品質？',
+        opts:['A. TensorBoard（訓練視覺化）','B. MLflow（實驗追蹤）','C. Great Expectations（資料驗證）','D. Kubernetes（容器編排）'],
+        ans:2, fb:'✅ 正確！Great Expectations 讓你定義「期望」，並在每次資料更新時自動執行驗證，失敗則中斷 Pipeline。'
+      },
+      {
+        avatar:'👨‍🚀', speech:'艦長：為什麼線上預測的特徵和訓練時的特徵計算結果不一樣？！',
+        q:'模型在線上服務時，特徵計算結果與訓練時不一致，這個問題稱為？',
+        opts:['A. 概念漂移 (Concept Drift)','B. 訓練/服務偏差 (Training-Serving Skew)','C. 資料漂移 (Data Drift)','D. 過擬合 (Overfitting)'],
+        ans:1, fb:'✅ 正確！Training-Serving Skew 是特徵工程最常見的 bug。使用特徵商店 (Feature Store) 統一計算邏輯，可以從根本上解決這個問題。'
+      }
+    ],
+    summary:`<b>✅ 本關概念總結</b><br>
+<span class="text-sky-400">DVC</span> → 資料版本控制，確保可重現性<br>
+<span class="text-sky-400">Great Expectations</span> → 自動化資料驗證<br>
+<span class="text-sky-400">Feature Store</span> → 避免 Training-Serving Skew<br>
+<span class="text-sky-400">時序切分</span> → 防止資料洩漏 (Data Leakage)`
+  },
+  {
+    id:1, name:'實驗追蹤室', icon:'🧪', color:'pur', xp:100,
+    subtitle:'科學化管理模型訓練實驗',
+    tags:['MLflow','超參數調優','模型登錄','可重現性'],
+    intro:'每次航行都要記錄飛船配置！在 ML 工程中，每次訓練實驗都需要系統性追蹤——超參數、指標、模型版本，以便找出最佳配置並部署。',
+    concepts:[
+      {icon:'📝', k:'實驗追蹤 (MLflow/W&B)', v:'記錄每次訓練的超參數、指標、環境。MLflow 是最常用的開源工具。'},
+      {icon:'🔍', k:'超參數調優', v:'從手動試錯到自動搜尋：Grid Search → Random Search → Bayesian Optimization (最有效率)。'},
+      {icon:'📦', k:'模型登錄庫 (Model Registry)', v:'模型的版本管理倉庫，可標記狀態：Staging、Production。支援快速回滾。'},
+    ],
+    quizzes:[
+      {
+        avatar:'🧪', speech:'實驗室 AI：我試了 50 種超參數組合，但忘了記錄哪組結果最好！',
+        q:'使用 MLflow 追蹤實驗時，一次完整的訓練記錄稱為？',
+        opts:['A. Experiment（實驗）','B. Run（執行記錄）','C. Artifact（產出物）','D. Pipeline（流水線）'],
+        ans:1, fb:'✅ 正確！MLflow 的層級：Experiment > Run。一個 Experiment 下有多個 Run。'
+      },
+      {
+        avatar:'🤖', speech:'NavCore：我需要找出最佳參數，但 Grid Search 太慢了...',
+        q:'哪種搜尋策略最有效率，能用更少實驗找到最佳解？',
+        opts:['A. Grid Search（窮舉）','B. Random Search（隨機）','C. Bayesian Optimization（貝葉斯）','D. 手動猜測'],
+        ans:2, fb:'✅ 正確！貝葉斯最佳化根據已有結果建立代理模型，預測哪組參數最可能改善效能，比隨機更聰明高效。'
+      },
+      {
+        avatar:'👨‍🚀', speech:'艦長：新模型部署上去出問題了！我要馬上回滾！',
+        q:'Model Registry 的哪個功能讓緊急回滾成為可能？',
+        opts:['A. 自動調整參數','B. 即時監控','C. 版本化儲存，並可一鍵切換生產版本','D. 自動訓練'],
+        ans:2, fb:'✅ 正確！Model Registry 讓你隨時將生產模型切回任意歷史版本，大幅降低風險。'
+      }
+    ],
+    summary:`<b>✅ 本關概念總結</b><br>
+<span class="text-purple-400">MLflow Run</span> → 記錄單次實驗的所有細節<br>
+<span class="text-purple-400">Bayesian Opt.</span> → 最有效率的超參數搜尋<br>
+<span class="text-purple-400">Model Registry</span> → 版本管理 + 一鍵回滾`
+  },
+  {
+    id:2, name:'CI/CD 自動化管線', icon:'⚙️', color:'amb', xp:100,
+    subtitle:'自動化訓練、測試與部署流程',
+    tags:['持續整合','持續交付','效能門禁','自動重訓'],
+    intro:'每次升級都必須通過自動化測試！任何模型變更都應觸發自動 CI/CD 流程，確保只有通過嚴格測試的模型才能進入生產環境。',
+    concepts:[
+      {icon:'🔄', k:'持續整合 (CI)', v:'每次代碼或資料變更，自動觸發訓練與測試。'},
+      {icon:'🔒', k:'評估門禁 (Model Gate)', v:'設定效能閾值（如 Accuracy > 0.90）。未達標的模型自動被阻擋，防止「降級部署」。'},
+      {icon:'🧪', k:'ML 測試策略', v:'單元測試、資料驗證、效能回歸測試（確保新模型不比舊的差）。'},
+    ],
+    quizzes:[
+      {
+        avatar:'⚙️', speech:'CI/CD 機器人：偵測到新版模型的 Accuracy 比目前生產模型低！',
+        q:'「評估門禁 (Model Gate)」的主要目的是？',
+        opts:['A. 加速模型訓練','B. 阻止效能低於閾值的模型上線，防止退步','C. 自動調整架構','D. 壓縮模型大小'],
+        ans:1, fb:'✅ 正確！Model Gate 確保新模型達到最低標準，防止「意外部署更差的模型」。'
+      },
+      {
+        avatar:'🤖', speech:'NavCore：有哪些條件可以自動觸發模型重訓？',
+        q:'最常見的自動觸發再訓練條件是？',
+        opts:['A. 手動按鈕','B. 資料漂移超過閾值、定時排程、或效能下降','C. 客戶投訴','D. 模型完全壞掉'],
+        ans:1, fb:'✅ 正確！時間驅動、資料量驅動、效能/漂移驅動，是自動重訓的三大觸發條件。'
+      },
+      {
+        avatar:'👨‍🚀', speech:'艦長：ML 的 CI/CD 和一般軟體有什麼不同？',
+        q:'哪項屬於 ML 特有的測試？',
+        opts:['A. 單元測試','B. 整合測試','C. 模型效能回歸測試','D. 程式碼風格檢查'],
+        ans:2, fb:'✅ 正確！確保新模型指標不低於前一版本，是 ML CI/CD 特有的核心步驟。'
+      }
+    ],
+    summary:`<b>✅ 本關概念總結</b><br>
+<span class="text-orange-400">CI/CD</span> → 自動化訓練、測試與部署<br>
+<span class="text-orange-400">Model Gate</span> → 效能門禁，防止退步<br>
+<span class="text-orange-400">自動觸發</span> → 時間/資料/漂移驅動`
+  },
+  {
+    id:3, name:'部署策略艙', icon:'🚀', color:'ind', xp:100,
+    subtitle:'安全、無停機地上線新模型',
+    tags:['藍綠部署','金絲雀發布','A/B 測試','影子模式'],
+    intro:'新模型開發完成了！但如何安全地發布給飛船，同時確保萬一出錯能立即回滾？不同場景需要不同的部署策略。',
+    concepts:[
+      {icon:'🔵🟢', k:'藍綠部署 (Blue/Green)', v:'瞬間將 100% 流量切換到新環境，有問題立即切回。需雙倍資源。'},
+      {icon:'🐦', k:'金絲雀發布 (Canary)', v:'先給 1% 流量，觀察無誤再漸進至 100%，風險隔離最好。'},
+      {icon:'👻', k:'影子模式 (Shadow Mode)', v:'新模型接收真實流量但「只記錄不輸出」，最安全的真實環境測試。'},
+      {icon:'📊', k:'A/B 測試', v:'將用戶隨機分組，觀察新舊模型對「商業指標」(如點擊率) 的影響。'},
+    ],
+    quizzes:[
+      {
+        avatar:'🚀', speech:'部署工程師：我們要更新導航模型，不能有服務中斷！',
+        q:'金絲雀發布 vs 藍綠部署的最大差異是？',
+        opts:['A. 金絲雀只能夜間執行','B. 金絲雀是漸進式切換，藍綠是瞬間全量切換','C. 藍綠不需要回滾','D. 完全相同'],
+        ans:1, fb:'✅ 正確！金絲雀漸進放量風險低；藍綠瞬間切換速度快。'
+      },
+      {
+        avatar:'🤖', speech:'NavCore：我想測試新模型，但不能影響任何真實用戶...',
+        q:'影子模式的核心目的是？',
+        opts:['A. 躲避稽核','B. 接收真實流量但不影響輸出，無風險評估','C. 夜間訓練','D. 節省資源'],
+        ans:1, fb:'✅ 正確！讓新模型「偷看」真實流量並記錄預測結果，是評估穩定性最安全的方法。'
+      },
+      {
+        avatar:'👨‍🚀', speech:'艦長：我想知道新模型能不能提升尋寶效率 (業務指標)？',
+        q:'哪種策略最適合「比較業務指標」？',
+        opts:['A. 藍綠部署','B. 影子模式','C. A/B 測試','D. 全量上線'],
+        ans:2, fb:'✅ 正確！A/B 測試用真實用戶分組，是獲取商業指標 ROI 的黃金標準。'
+      }
+    ],
+    summary:`<b>✅ 本關概念總結</b><br>
+<span class="text-indigo-400">藍綠部署</span> → 瞬間切換，快速回滾<br>
+<span class="text-indigo-400">金絲雀</span> → 漸進放量，控制風險<br>
+<span class="text-indigo-400">影子模式</span> → 零風險生產測試<br>
+<span class="text-indigo-400">A/B 測試</span> → 業務指標統計比較`
+  },
+  {
+    id:4, name:'漂移監控核心', icon:'📡', color:'em', xp:100,
+    subtitle:'偵測並診斷生產環境中的模型退化',
+    tags:['資料漂移','模型漂移','概念漂移','KL散度','PSI'],
+    intro:'宇宙環境不斷變化！星域物質改變、任務目標更新...任何變化都可能讓 AI 失準。你必須即時監控漂移。',
+    concepts:[
+      {icon:'📊', k:'資料漂移 (Data Drift)', v:'輸入特徵分佈 P(X) 改變。常用 KL散度、PSI 偵測。PSI > 0.25 為重大漂移。'},
+      {icon:'📉', k:'模型漂移 (Model Drift)', v:'模型預測效能隨時間逐漸退化。'},
+      {icon:'💡', k:'概念漂移 (Concept Drift)', v:'目標定義 P(Y|X) 改變 (正確答案的標準變了)。必須重新標注資料重訓。'},
+    ],
+    quizzes:[
+      {
+        avatar:'📡', speech:'監控 AI：星域掃描儀的 KL 散度值飆升！',
+        q:'KL 散度主要用來衡量什麼？',
+        opts:['A. 訓練速度','B. 兩個機率分佈之間的差異大小','C. 資料總筆數','D. 準確率'],
+        ans:1, fb:'✅ 正確！KL 散度越大，代表上線後的資料分佈偏離訓練時的分佈越嚴重。'
+      },
+      {
+        avatar:'🤖', speech:'NavCore：資料漂移和概念漂移，該怎麼區分？',
+        q:'兩者的根本差異是？',
+        opts:['A. 發生時間不同','B. 資料漂移是特徵分佈改變，概念漂移是答案定義改變','C. 完全相同','D. 適用不同算法'],
+        ans:1, fb:'✅ 正確！資料漂移：隕石變多了。概念漂移：原本隕石是障礙，現在變成要收集的資源。'
+      },
+      {
+        avatar:'👨‍🚀', speech:'艦長：PSI 指標超過多少代表嚴重警告？',
+        q:'PSI (Population Stability Index) 的常見重大漂移閾值是？',
+        opts:['A. > 1.0','B. > 0.25','C. > 100','D. < 0'],
+        ans:1, fb:'✅ 正確！PSI < 0.1 穩定；0.1~0.25 需關注；> 0.25 為重大漂移，應觸發重訓。'
+      }
+    ],
+    summary:`<b>✅ 本關概念總結</b><br>
+<span class="text-emerald-400">資料漂移</span> → P(X) 改變，用 KL/PSI 偵測<br>
+<span class="text-emerald-400">模型漂移</span> → 效能隨時間退化<br>
+<span class="text-emerald-400">概念漂移</span> → P(Y|X) 改變，需重新標注`
+  },
+  {
+    id:5, name:'自適應再訓練引擎', icon:'🔄', color:'ros', xp:100,
+    subtitle:'面對各種漂移情境，選擇最佳再訓練策略',
+    tags:['滑動窗口','線上學習','主動學習','遷移學習'],
+    intro:'偵測到漂移後如何讓 AI 重新適應？不同的漂移類型、速度、資料量需要不同的再訓練策略，這是 MLOps 的最後一環！',
+    concepts:[
+      {icon:'📅', k:'滑動窗口 (Sliding Window)', v:'只用最近 N 天的資料重訓。適合緩慢漸變的漂移，讓模型自動遺忘舊模式。'},
+      {icon:'⚡', k:'線上學習 (Online Learning)', v:'逐筆即時更新權重。適合快速劇烈變化的場景。'},
+      {icon:'🎯', k:'主動學習 (Active Learning)', v:'讓模型選出「最不確定」的樣本給人工標注，大幅降低高昂的標注成本。'},
+      {icon:'🧠', k:'遷移學習 (Transfer Learning)', v:'微調預訓練模型。適合新資料稀少、需快速適應的場景。'},
+    ],
+    quizzes:[
+      {
+        avatar:'🔄', speech:'再訓練引擎：環境每週緩慢改變...',
+        q:'「滑動窗口」比「全量歷史資料重訓」的好處是？',
+        opts:['A. 絕對更快','B. 聚焦近期分佈，自動適應緩慢漂移，不被過時資料干擾','C. 不需新資料','D. 免重新部署'],
+        ans:1, fb:'✅ 正確！滑動窗口能確保模型反映當前的真實分佈，拋棄失效歷史。'
+      },
+      {
+        avatar:'⚡', speech:'NavCore：敵艦出現！移動模式每秒都在變！',
+        q:'面對快速且劇烈的漂移，最佳策略是？',
+        opts:['A. 全量重訓','B. 線上學習 (逐筆即時更新)','C. 調整超參數','D. 影子模式'],
+        ans:1, fb:'✅ 正確！Online Learning 來一筆學一筆，是應對突發劇烈漂移的利器。'
+      },
+      {
+        avatar:'🎯', speech:'資料科學家：我們有大量資料，但人工標注太貴了...',
+        q:'主動學習的核心思想是？',
+        opts:['A. 自動生成標注','B. 讓模型選擇最不確定的樣本優先標注，降低成本','C. 只用舊資料','D. 用強化學習'],
+        ans:1, fb:'✅ 正確！好鋼用在刀刃上，只標注對模型決策邊界最有幫助的資料。'
+      }
+    ],
+    summary:`<b>✅ 本關概念總結</b><br>
+<span class="text-rose-400">滑動窗口</span> → 緩慢漸變，聚焦近期<br>
+<span class="text-rose-400">線上學習</span> → 快速劇烈漂移，即時更新<br>
+<span class="text-rose-400">主動學習</span> → 高標注成本，智慧選樣<br>
+<span class="text-rose-400">遷移學習</span> → 新資料少，微調預訓練模型`
+  }
+];
+
+const REFERENCE_DATA = [
+  {h:'📊 DataOps', items:[['DVC','資料版本控制工具'],['Great Expectations','自動執行資料品質規則'],['Feature Store','統一特徵計算邏輯平台'],['Training-Serving Skew','訓練與服務時特徵計算不一致'],['Data Leakage','未來資料洩漏到訓練集']]},
+  {h:'🧪 實驗追蹤', items:[['MLflow','開源實驗追蹤平台'],['Bayesian Optimization','用代理模型指導超參數搜尋，效率最高'],['Model Registry','模型版本管理倉庫，支援 Staging/Production'] ]},
+  {h:'⚙️ CI/CD', items:[['Model Gate','評估門禁，確保效能達標'],['Automated Retraining','自動觸發：時間/資料量/漂移'],['Performance Regression Test','效能回歸測試，ML 特有']]},
+  {h:'🚀 部署策略', items:[['Blue/Green','雙環境瞬間切換，快速回滾'],['Canary Release','漸進式放量，降低風險'],['Shadow Mode','接收真實流量但不影響輸出'],['A/B Testing','比較模型的業務指標']]},
+  {h:'📡 監控', items:[['KL Divergence','衡量兩分佈差異 (資料漂移)'],['PSI','Population Stability Index，>0.25為重大漂移'],['Data Drift','P(X) 改變：輸入特徵分佈異常'],['Concept Drift','P(Y|X) 改變：目標定義改變']]},
+  {h:'🔄 再訓練', items:[['Sliding Window','使用近期資料，適應緩慢漂移'],['Online Learning','逐筆更新，適應快速漂移'],['Active Learning','模型選最不確定樣本，降標注成本'],['Transfer Learning','微調預訓練模型']]}
+];
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let S = {
+  screen:'title', curMission:-1, xp:0,
+  done: new Set(), unlocked: new Set([0]),
+  warping: false, // For 3D Warp effect
+  
+  // M0
+  m0Steps: [true, false, false, false, false], m0Contam: 0,
+  // M1
+  m1LR: 0.001, m1BS: 32, m1Epochs: 10, m1Runs: [], m1BestIdx: -1,
+  // M2
+  m2Thresh: 0.90, m2Stages: [true, false, false, false, false],
+  // M3
+  m3Traffic: 0, m3Mode: 'canary',
+  // M4
+  live_P: [0.2,0.5,0.3], klScore: 0, mse: 0.05, months: 1, isConcept: false, isAdapted: false, isCrashed: false, wheelAngle: 0,
+  // M5
+  m5Scenarios: [null, null, null, null], m5Picked: -1, m5LastPick: -1
+};
+
+// ═══════════════════════════════════════════════════
+// THREE.JS
+// ═══════════════════════════════════════════════════
+let scene, camera, renderer, starGeo, stars, lastTime=0;
+let spaceship=null, engineLight=null, asteroids=[], crystals=[];
+let currentWarpSpeed = 1;
+
+function init3D() {
+  const c = document.getElementById('canvas-bg');
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x020510, 0.007);
+  camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+  camera.position.set(0,4,15); camera.lookAt(0,0,-10);
+  renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Opt for performance
+  c.appendChild(renderer.domElement);
+  
+  scene.add(new THREE.AmbientLight(0xffffff, 0.18));
+  const dl = new THREE.DirectionalLight(0xa78bfa, 0.8);
+  dl.position.set(5,10,5); scene.add(dl);
+  
+  createStars(); createSpaceship(); createDebris();
+  
+  window.addEventListener('resize', ()=>{ 
+    camera.aspect=innerWidth/innerHeight; 
+    camera.updateProjectionMatrix(); 
+    renderer.setSize(innerWidth,innerHeight); 
+  });
+  lastTime = performance.now();
+  requestAnimationFrame(animate3D);
+}
+
+function createStars() {
+  starGeo = new THREE.BufferGeometry();
+  const pos = new Float32Array(2400);
+  for(let i=0;i<2400;i++) pos[i]=(Math.random()-0.5)*500;
+  starGeo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color:0xffffff,size:0.6,transparent:true,opacity:0.6}));
+  scene.add(stars);
+}
+
+function createSpaceship() {
+  spaceship = new THREE.Group();
+  const hullG = new THREE.CylinderGeometry(0.5,1.5,6,8); hullG.rotateX(Math.PI/2);
+  spaceship.add(new THREE.Mesh(hullG, new THREE.MeshStandardMaterial({color:0x1e293b,metalness:0.8,roughness:0.2})));
+  const wingG = new THREE.BoxGeometry(6,0.2,2);
+  const wingM = new THREE.Mesh(wingG, new THREE.MeshStandardMaterial({color:0x1e293b,metalness:0.8}));
+  wingM.position.set(0,-0.5,1); spaceship.add(wingM);
+  const cpG = new THREE.SphereGeometry(0.6,16,16); cpG.scale(1,2.5,1); cpG.rotateX(Math.PI/2);
+  const cpM = new THREE.Mesh(cpG, new THREE.MeshStandardMaterial({color:0x0ea5e9,metalness:0.9,roughness:0.1,emissive:0x0284c7,emissiveIntensity:0.3}));
+  cpM.position.set(0,0.8,-1); spaceship.add(cpM);
+  engineLight = new THREE.PointLight(0x8b5cf6,2.5,20); engineLight.position.set(0,0,3.5); spaceship.add(engineLight);
+  const fG = new THREE.ConeGeometry(0.8,3,8); fG.rotateX(-Math.PI/2);
+  const fM = new THREE.Mesh(fG, new THREE.MeshBasicMaterial({color:0x8b5cf6,transparent:true,opacity:0.8}));
+  fM.position.set(0,0,4.5); spaceship.add(fM);
+  spaceship.position.set(0,0,-5); scene.add(spaceship);
+}
+
+function createDebris() {
+  const gA = new THREE.DodecahedronGeometry(1.5,0);
+  const gC = new THREE.OctahedronGeometry(1,0);
+  for(let i=0;i<20;i++){
+    const m = new THREE.Mesh(gA, new THREE.MeshStandardMaterial({color:0x64748b,roughness:0.8}));
+    m.position.set((Math.random()-0.5)*40,(Math.random()-0.5)*20,-100-Math.random()*100);
+    m.rotation.set(Math.random(),Math.random(),Math.random());
+    m.userData={speed:20+Math.random()*15, rot:Math.random()*0.05};
+    asteroids.push(m); scene.add(m);
+  }
+  for(let i=0;i<6;i++){
+    const m = new THREE.Mesh(gC, new THREE.MeshStandardMaterial({color:0x10b981,emissive:0x059669,metalness:0.8}));
+    m.position.set((Math.random()-0.5)*30,(Math.random()-0.5)*10,-100-Math.random()*100);
+    m.userData={speed:15, rot:0.08};
+    m.visible=false; crystals.push(m); scene.add(m);
+  }
+}
+
+function animate3D() {
+  requestAnimationFrame(animate3D);
+  const now = performance.now();
+  const dt = Math.min((now-lastTime)/1000, 0.05); lastTime=now;
+  
+  // Warp logic
+  const targetWarp = S.warping ? 15 : 1;
+  currentWarpSpeed += (targetWarp - currentWarpSpeed) * dt * 5;
+  
+  // Stars
+  const baseSpd = S.isCrashed ? 0.2 : (1+S.klScore*1.5);
+  const spd = baseSpd * currentWarpSpeed;
+  
+  if (S.warping) stars.material.size = 2; // stretch stars
+  else stars.material.size = 0.6;
+  
+  const pos = starGeo.attributes.position.array;
+  for(let i=2;i<2400;i+=3){ 
+    pos[i] += 45 * spd * dt; 
+    if(pos[i]>50) pos[i]-=500; 
+  }
+  starGeo.attributes.position.needsUpdate=true;
+  
+  // Asteroids (mission 4)
+  if(S.curMission===4 || S.screen==='map' || S.screen==='title'){
+    asteroids.forEach(a=>{
+      a.position.z += a.userData.speed * spd * dt; 
+      a.rotation.x += a.userData.rot; a.rotation.y += a.userData.rot;
+      if(a.position.z>10){ 
+        a.position.z = -100-Math.random()*50; 
+        a.position.x = (Math.random()-0.5)*40; 
+        a.position.y = (Math.random()-0.5)*20;
+        const r=Math.random();
+        if(r<S.live_P[0]) a.material.color.setHex(0x64748b);
+        else if(r<S.live_P[0]+S.live_P[1]) { a.material.color.setHex(0x22d3ee); a.material.emissive={r:0.02,g:0.3,b:0.4}; }
+        else { a.material.color.setHex(0xd946ef); }
+      }
+    });
+    crystals.forEach(c=>{ 
+      c.visible = S.isConcept; 
+      if(S.isConcept){ 
+        c.position.z += c.userData.speed*dt; c.rotation.y+=c.userData.rot; 
+        if(c.position.z>10){c.position.z=-80-Math.random()*40;c.position.x=(Math.random()-0.5)*20;c.position.y=(Math.random()-0.5)*10;} 
+      } 
+    });
+    
+    if(S.isCrashed){ 
+      spaceship.rotation.z+=4*dt; spaceship.rotation.x+=1.5*dt; spaceship.position.y-=1.5*dt; 
+      engineLight.color.setHex(0xff2200); 
+    } else { 
+      engineLight.color.setHex(0x8b5cf6); 
+      const w = Math.max(0, S.mse-0.1)*1.5; 
+      spaceship.position.x += (Math.random()-0.5)*w; 
+      spaceship.position.y += (Math.random()-0.5)*w; 
+      const tr = -spaceship.position.x*0.08; 
+      spaceship.rotation.z += (tr-spaceship.rotation.z)*5*dt; 
+      spaceship.rotation.x = 0; 
+      spaceship.position.y += (0-spaceship.position.y)*1.5*dt; 
+    }
+  } else {
+    // Other missions: gentle float
+    asteroids.forEach(a=> a.position.z = 100); // Hide
+    const t = now/1000;
+    spaceship.position.x = Math.sin(t*0.3)*2;
+    spaceship.position.y = Math.sin(t*0.5)*1;
+    spaceship.rotation.z = Math.sin(t*0.4)*0.1;
+    spaceship.rotation.x = 0;
+    engineLight.color.setHex(0x8b5cf6);
+  }
+  renderer.render(scene,camera);
+}
+
+// ═══════════════════════════════════════════════════
+// SCREEN MANAGEMENT
+// ═══════════════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => {
+    if(!s.classList.contains('hidden')){
+      s.classList.add('fade-out');
+      setTimeout(()=> {
+        s.classList.add('hidden');
+        s.classList.remove('fade-out');
+      }, 500);
+    }
+  });
+  
+  setTimeout(() => {
+    const next = document.getElementById(id);
+    next.classList.remove('hidden');
+    next.classList.remove('fade-out');
+  }, 500);
+}
+
+function openModal(id){ document.getElementById(id).classList.add('open'); playSound('click'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); playSound('click'); }
+
+function initGame() {
+  initAudio();
+  playSound('warp');
+  S.warping = true;
+  showScreen('screen-map');
+  renderMap();
+  setTimeout(()=> { S.warping = false; }, 1200);
+}
+
+function exitMission(){
+  playSound('click');
+  S.curMission = -1; S.screen = 'map';
+  showScreen('screen-map'); renderMap();
+}
+
+function startMission(id){
+  if(!S.unlocked.has(id)) {
+    playSound('fail');
+    return;
+  }
+  initAudio();
+  playSound('warp');
+  S.warping = true;
+  
+  setTimeout(()=> {
+    S.warping = false;
+    const m = MISSIONS[id];
+    S.curMission = id; S.screen = 'mission';
+    showScreen('screen-mission');
+    renderLifecycleBar(id);
+    renderMissionHeader(m);
+    renderControls(id);
+    renderViz(id);
+    renderInfo(id);
+  }, 800); // Wait for warp effect
+}
+
+// ═══════════════════════════════════════════════════
+// MAP
+// ═══════════════════════════════════════════════════
+function renderMap(){
+  const xpPct = (S.xp/600*100).toFixed(1);
+  document.getElementById('map-xpbar').style.width = xpPct+'%';
+  document.getElementById('map-xptext').textContent = S.xp+' / 600';
+  const grid = document.getElementById('mission-grid'); grid.innerHTML='';
+  const colors = {sky:'#38bdf8', pur:'#a78bfa', amb:'#fb923c', ind:'#818cf8', em:'#34d399', ros:'#fb7185'};
+  
+  MISSIONS.forEach(m=>{
+    const done = S.done.has(m.id), locked = !S.unlocked.has(m.id);
+    const col = colors[m.color]||'#a78bfa';
+    const card = document.createElement('div');
+    card.className = 'm-card'+(locked?' locked':'')+(done?' done':'');
+    card.innerHTML=`
+      <div style="display:flex;align-items:flex-start;gap:0.75rem;">
+        <div style="font-size:2.2rem;flex-shrink:0;">${m.icon}</div>
+        <div style="flex:1;">
+          <div style="font-size:0.7rem;font-weight:700;color:${done?'#34d399':(locked?'#475569':col)};letter-spacing:0.05em;margin-bottom:0.3rem;">
+            ${locked?'🔒 需先完成上一關':done?'✅ 已通過測驗':'▶ 點擊開始任務'}
+          </div>
+          <div style="font-size:1.1rem;font-weight:800;color:${locked?'#475569':'#f1f5f9'};margin-bottom:0.3rem;">${m.name}</div>
+          <div style="font-size:0.75rem;color:#64748b;margin-bottom:0.75rem;">${m.subtitle}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.3rem;">
+            ${m.tags.map(t=>`<span class="tag" style="background:${col}18;color:${col};border:1px solid ${col}30;">${t}</span>`).join('')}
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:1.2rem;font-weight:800;color:${col};">+${m.xp}</div>
+          <div style="font-size:0.65rem;color:#475569;">XP</div>
+        </div>
+      </div>
+    `;
+    if(!locked) card.onclick = () => startMission(m.id);
+    grid.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// LIFECYCLE BAR
+// ═══════════════════════════════════════════════════
+const LC_STEPS=['📊 DataOps','🧪 實驗追蹤','⚙️ CI/CD','🚀 部署策略','📡 監控','🔄 再訓練'];
+function renderLifecycleBar(cur){
+  const bar = document.getElementById('lc-bar');
+  const btn = bar.children[0]; // Keep back button
+  bar.innerHTML = '';
+  bar.appendChild(btn);
+  LC_STEPS.forEach((s,i)=>{
+    const nd=document.createElement('span');
+    nd.className='lc-node '+(i<cur?'ok':(i===cur?'cur':'dim'));
+    nd.textContent=s;
+    bar.appendChild(nd);
+    if(i<5){ const sep=document.createElement('span'); sep.className='lc-sep'; sep.textContent='›'; bar.appendChild(sep); }
+  });
+  // XP
+  const xpEl=document.createElement('div');
+  xpEl.style.cssText='margin-left:auto;display:flex;align-items:center;gap:0.5rem;flex-shrink:0;';
+  xpEl.innerHTML=`<span style="font-size:0.7rem;color:#a78bfa;font-weight:700;">⭐ ${S.xp}/600 XP</span><button onclick="openRefModal()" class="hover:bg-indigo-500/30 transition-colors" style="font-size:0.7rem;color:#d8b4fe;font-weight:700;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);padding:0.25rem 0.6rem;border-radius:999px;cursor:pointer;">📚 詞典</button>`;
+  bar.appendChild(xpEl);
+}
+
+function renderMissionHeader(m){
+  const colors={sky:'#38bdf8', pur:'#a78bfa', amb:'#fb923c', ind:'#818cf8', em:'#34d399', ros:'#fb7185'};
+  const col=colors[m.color]||'#a78bfa';
+  document.getElementById('panel-header').innerHTML=`
+    <div class="flex flex-col md:flex-row items-start justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-3xl">${m.icon}</span>
+          <h2 class="text-xl font-black" style="color:${col};">${m.name}</h2>
+        </div>
+        <p class="text-sm text-slate-400 leading-relaxed">${m.intro}</p>
+      </div>
+      <button onclick="startQuiz()" class="btn btn-p pulse-glow w-full md:w-auto" style="flex-shrink:0;">📝 結算測驗</button>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════
+// CONTROLS (Left Panel)
+// ═══════════════════════════════════════════════════
+function renderControls(id){
+  const p=document.getElementById('panel-controls');
+  switch(id){
+    case 0: renderM0Controls(p); break;
+    case 1: renderM1Controls(p); break;
+    case 2: renderM2Controls(p); break;
+    case 3: renderM3Controls(p); break;
+    case 4: renderM4Controls(p); break;
+    case 5: renderM5Controls(p); break;
+  }
+}
+
+// ─── M0: DataOps ───
+function renderM0Controls(p){
+  const STEPS=[
+    {icon:'🧹', name:'資料清洗', desc:'移除空值/重複列', req:true},
+    {icon:'📏', name:'數值標準化', desc:'Z-score / Min-Max', req:false},
+    {icon:'🔒', name:'Schema 驗證', desc:'欄位型別檢查', req:true},
+    {icon:'⚖️', name:'類別編碼', desc:'One-hot Encoding', req:false},
+    {icon:'✂️', name:'時序資料切分', desc:'防 Data Leakage', req:true},
+  ];
+  p.innerHTML=`
+    <h3 class="text-sm font-black text-sky-400 mb-4">🔧 配置資料管線</h3>
+    <div class="mb-5">
+      <div class="flex justify-between text-xs text-slate-400 mb-2">
+        <span>資料污染率 (模擬雜訊)</span><span id="m0-contam-val" class="text-orange-400 font-bold">${S.m0Contam}%</span>
+      </div>
+      <input type="range" class="sl s" min="0" max="80" value="${S.m0Contam}" id="m0-contam" oninput="onM0Contam(this.value)">
+    </div>
+    <div class="text-xs text-slate-400 mb-3">點擊啟用/停用管線步驟：</div>
+    <div class="flex flex-col gap-2">
+      ${STEPS.map((s,i)=>`
+        <div class="ps${S.m0Steps[i]?' on':''}" onclick="toggleM0Step(${i})">
+          <span class="text-lg">${s.icon}</span>
+          <div class="flex-1">
+            <div class="text-xs font-bold" style="color:${S.m0Steps[i]?'#e2e8f0':'#64748b'};">${s.name} ${s.req?'<span class="text-[10px] text-rose-400">必要</span>':''}</div>
+            <div class="text-[10px] text-slate-500">${s.desc}</div>
+          </div>
+          <span class="text-base">${S.m0Steps[i]?'✅':'⬜'}</span>
+        </div>
+      `).join('')}
+    </div>
+    <button onclick="runM0Validation()" class="btn btn-s w100 mt-5">▶ 執行資料管線</button>
+    <div id="m0-result" class="mt-4 text-xs"></div>
+  `;
+}
+function toggleM0Step(i){ playSound('click'); S.m0Steps[i]=!S.m0Steps[i]; renderM0Controls(document.getElementById('panel-controls')); }
+function onM0Contam(v){ S.m0Contam=parseInt(v); document.getElementById('m0-contam-val').textContent=v+'%'; }
+function runM0Validation(){
+  playSound('click');
+  const r = document.getElementById('m0-result');
+  let msg = '';
+  let passed = true;
+
+  // 檢查是否漏掉必要步驟
+  if(!S.m0Steps[0]) { passed = false; msg += `❌ 缺少「資料清洗」步驟。<br>`; }
+  if(!S.m0Steps[2]) { passed = false; msg += `❌ 缺少「Schema 驗證」步驟！<br>`; }
+  if(!S.m0Steps[4]) { passed = false; msg += `❌ 缺少「時序切分」！可能產生 Data Leakage。<br>`; }
+
+  // 針對污染率給予特殊提示
+  if(S.m0Contam > 0 && !S.m0Steps[0]) {
+    msg = `❌ 偵測到 ${S.m0Contam}% 資料污染，必須啟用「資料清洗」！<br>` + msg.replace(`❌ 缺少「資料清洗」步驟。<br>`, '');
+  }
+
+  // 結算結果
+  if(passed){
+    playSound('success');
+    let extraMsg = S.m0Contam > 0 ? `🧹 已成功過濾 ${S.m0Contam}% 的污染資料。<br>` : '';
+    r.innerHTML=`<div class="bg-emerald-400/10 border border-emerald-400/30 rounded-lg p-3 text-emerald-300">✅ 資料管線驗證通過！<br>${extraMsg}所有 Great Expectations 規則均滿足。資料已 DVC 版本化。<br><span class="text-emerald-400 text-[10px]">特徵商店已同步最新版本。</span></div>`;
+  } else {
+    playSound('fail');
+    r.innerHTML=`<div class="bg-rose-400/10 border border-rose-400/30 rounded-lg p-3 text-rose-300 leading-relaxed">${msg}請修正上述問題後重試。</div>`;
+  }
+}
+
+// ─── M1: Experiment Tracking ───
+function renderM1Controls(p){
+  p.innerHTML=`
+    <h3 class="text-sm font-black text-purple-400 mb-4">🧪 調整超參數 & 執行訓練</h3>
+    <div class="flex flex-col gap-5">
+      <div>
+        <div class="flex justify-between text-xs text-slate-400 mb-2">
+          <span>Learning Rate</span><span id="m1-lr-v" class="text-purple-400 font-bold font-mono">${S.m1LR.toFixed(4)}</span>
+        </div>
+        <input type="range" class="sl p" min="1" max="100" value="${Math.round(S.m1LR*10000)}" oninput="onM1LR(this.value)">
+      </div>
+      <div>
+        <div class="flex justify-between text-xs text-slate-400 mb-2">
+          <span>Batch Size</span><span id="m1-bs-v" class="text-purple-400 font-bold">${S.m1BS}</span>
+        </div>
+        <input type="range" class="sl p" min="0" max="5" value="${[8,16,32,64,128,256].indexOf(S.m1BS)>=0?[8,16,32,64,128,256].indexOf(S.m1BS):2}" oninput="onM1BS(this.value)">
+      </div>
+      <div>
+        <div class="flex justify-between text-xs text-slate-400 mb-2">
+          <span>Epochs</span><span id="m1-ep-v" class="text-purple-400 font-bold">${S.m1Epochs}</span>
+        </div>
+        <input type="range" class="sl p" min="1" max="50" value="${S.m1Epochs}" oninput="onM1EP(this.value)">
+      </div>
+    </div>
+    <button onclick="runM1Experiment()" class="btn btn-p w100 mt-6">▶ 執行訓練 Run</button>
+    <button onclick="registerBestModel()" class="btn btn-g w100 mt-2" id="m1-reg-btn">📦 儲存最佳 Run 至 Registry</button>
+    <div id="m1-reg-result" class="text-xs mt-3"></div>
+  `;
+  document.getElementById('m1-reg-btn').disabled = S.m1Runs.length === 0;
+}
+function onM1LR(v){ S.m1LR=v/10000; document.getElementById('m1-lr-v').textContent=S.m1LR.toFixed(4); }
+function onM1BS(v){ S.m1BS=[8,16,32,64,128,256][parseInt(v)]||32; document.getElementById('m1-bs-v').textContent=S.m1BS; }
+function onM1EP(v){ S.m1Epochs=parseInt(v); document.getElementById('m1-ep-v').textContent=v; }
+function runM1Experiment(){
+  playSound('click');
+  const lrScore = S.m1LR>0.0001 && S.m1LR<0.005 ? 0.12 : -0.08;
+  const bsScore = (S.m1BS===32 || S.m1BS===64) ? 0.05 : -0.03;
+  const epScore = S.m1Epochs>=10 ? Math.min(0.1,(S.m1Epochs-10)*0.005) : -0.05;
+  const noise = (Math.random()-0.5)*0.06;
+  const acc = Math.max(0.5, Math.min(0.99, 0.78 + lrScore + bsScore + epScore + noise));
+  const loss = +(2-acc*1.8+Math.random()*0.15).toFixed(4);
+  const runId = 'run-'+(S.m1Runs.length+1).toString().padStart(3,'0');
+  
+  S.m1Runs.push({id:runId, lr:S.m1LR, bs:S.m1BS, ep:S.m1Epochs, acc:+acc.toFixed(4), loss});
+  S.m1BestIdx = S.m1Runs.reduce((bi,r,i)=>r.acc>S.m1Runs[bi].acc?i:bi, 0);
+  
+  renderViz(1);
+  renderM1Controls(document.getElementById('panel-controls'));
+}
+function registerBestModel(){
+  if(S.m1Runs.length===0) return;
+  playSound('success');
+  const best=S.m1Runs[S.m1BestIdx];
+  document.getElementById('m1-reg-result').innerHTML=`<div class="bg-emerald-400/10 border border-emerald-400/30 rounded-lg p-3 text-emerald-300">✅ 已登錄至 Model Registry<br><span class="font-mono text-emerald-200">${best.id}</span> → <span class="text-emerald-400 font-bold">Staging</span><br>Accuracy: <b>${best.acc}</b></div>`;
+}
+
+// ─── M2: CI/CD ───
+function renderM2Controls(p){
+  const STAGES=[
+    {icon:'📊', name:'資料驗證', desc:'規則檢查'},
+    {icon:'🔧', name:'自動訓練', desc:'Pipeline 重訓'},
+    {icon:'🧪', name:'效能評估', desc:'回歸測試'},
+    {icon:'🔒', name:'評估門禁', desc:`Acc > ${S.m2Thresh.toFixed(2)}`},
+    {icon:'🚀', name:'自動部署', desc:'至 Staging'},
+  ];
+  p.innerHTML=`
+    <h3 class="text-sm font-black text-orange-400 mb-4">⚙️ 配置 CI/CD Pipeline</h3>
+    <div class="mb-5">
+      <div class="flex justify-between text-xs text-slate-400 mb-2">
+        <span>門禁閾值 (Accuracy ≥)</span><span id="m2-thresh-v" class="text-orange-400 font-bold">${S.m2Thresh.toFixed(2)}</span>
+      </div>
+      <input type="range" class="sl a" min="70" max="99" value="${Math.round(S.m2Thresh*100)}" id="m2-thresh" oninput="onM2Thresh(this.value)">
+    </div>
+    <div class="text-xs text-slate-400 mb-2">Pipeline 階段狀態：</div>
+    <div class="flex flex-col gap-2" id="m2-stages">
+      ${STAGES.map((s,i)=>`
+        <div class="ps ok cursor-default" id="m2-stage-${i}">
+          <span class="text-base">${s.icon}</span>
+          <div class="flex-1">
+            <div class="text-xs font-bold text-slate-200">${s.name}</div>
+            <div class="text-[10px] text-slate-400">${s.desc}</div>
+          </div>
+          <span class="sdot ok" id="m2-dot-${i}"></span>
+        </div>
+      `).join('')}
+    </div>
+    <div class="mt-5 flex flex-col gap-2">
+      <button onclick="runM2Pipeline(true)" class="btn btn-g w100">▶ 模擬：優秀模型 (Acc=0.93)</button>
+      <button onclick="runM2Pipeline(false)" class="btn btn-a w100">▶ 模擬：退步模型 (Acc=0.82)</button>
+    </div>
+    <div id="m2-result" class="mt-4 text-xs"></div>
+  `;
+}
+function onM2Thresh(v){ S.m2Thresh=v/100; document.getElementById('m2-thresh-v').textContent=S.m2Thresh.toFixed(2); renderViz(2); }
+function runM2Pipeline(good){
+  playSound('click');
+  const acc = good ? 0.93 : 0.82;
+  const pass = acc >= S.m2Thresh;
+  const r = document.getElementById('m2-result');
+  r.innerHTML = '';
+  
+  const dots=[0,1,2,3,4];
+  dots.forEach(i=> document.getElementById(`m2-dot-${i}`).className = 'sdot dim');
+  
+  dots.forEach((i,di)=>{
+    setTimeout(()=>{
+      playSound('click');
+      const dot=document.getElementById(`m2-dot-${i}`);
+      if(i===3){ dot.className=`sdot ${pass?'ok':'err'}`; } 
+      else if(i===4){ dot.className=`sdot ${pass?'ok':'dim'}`; } 
+      else { dot.className='sdot ok'; }
+    }, (di+1)*400);
+  });
+  
+  setTimeout(()=>{
+    if(pass){
+      playSound('success');
+      r.innerHTML=`<div class="bg-emerald-400/10 border border-emerald-400/30 rounded-lg p-3 text-emerald-300">✅ Pipeline 通過！Accuracy ${acc} ≥ 閾值 ${S.m2Thresh.toFixed(2)}<br>模型已自動推送至 Staging。</div>`;
+    } else {
+      playSound('fail');
+      r.innerHTML=`<div class="bg-rose-400/10 border border-rose-400/30 rounded-lg p-3 text-rose-300">❌ 評估門禁阻擋！Accuracy ${acc} < 閾值 ${S.m2Thresh.toFixed(2)}<br>避免退步上線，觸發再訓練。</div>`;
+    }
+  }, 2500);
+}
+
+// ─── M3: Deployment ───
+function renderM3Controls(p){
+  const MODES=[
+    {id:'canary', name:'🐦 金絲雀', desc:'漸進放量'},
+    {id:'bluegreen', name:'🔵🟢 藍綠', desc:'瞬間切換'},
+    {id:'shadow', name:'👻 影子', desc:'零風險測試'},
+    {id:'ab', name:'📊 A/B', desc:'業務指標比對'},
+  ];
+  p.innerHTML=`
+    <h3 class="text-sm font-black text-indigo-400 mb-4">🚀 選擇部署策略</h3>
+    <div class="grid grid-cols-2 gap-2 mb-5">
+      ${MODES.map(m=>`<button class="scn${S.m3Mode===m.id?' pick':''}" onclick="setM3Mode('${m.id}')">
+        <div class="font-bold text-xs">${m.name}</div><div class="text-[10px] text-slate-400 mt-1">${m.desc}</div>
+      </button>`).join('')}
+    </div>
+    <div class="mb-4">
+      <div class="flex justify-between text-xs text-slate-400 mb-2">
+        <span>流量分配 → V2 新模型</span><span id="m3-tv" class="text-indigo-400 font-bold">${S.m3Traffic}%</span>
+      </div>
+      <input type="range" class="sl p" min="0" max="100" value="${S.m3Traffic}" id="m3-traffic" oninput="onM3Traffic(this.value)">
+    </div>
+    <div id="m3-mode-hint" class="text-xs p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-slate-300 mb-4 leading-relaxed"></div>
+    <button onclick="m3Rollback()" class="btn btn-a w100">⏪ 緊急回滾至 V1</button>
+    <div id="m3-rollback-msg" class="text-xs mt-3"></div>
+  `;
+  updateM3Hint();
+}
+function setM3Mode(mode){ playSound('click'); S.m3Mode=mode; renderM3Controls(document.getElementById('panel-controls')); renderViz(3); }
+function onM3Traffic(v){ S.m3Traffic=parseInt(v); document.getElementById('m3-tv').textContent=v+'%'; renderViz(3); }
+function updateM3Hint(){
+  const HINTS={
+    canary:'金絲雀：從 1%→5%→20%→100% 漸進放量。觀察穩定再推進，風險最小。',
+    bluegreen:'藍綠部署：流量瞬間 100% 切到 V2。有問題一鍵切回，需雙倍資源。',
+    shadow:'影子模式：V2 接收真實流量但不影響用戶，輸出僅記錄，零業務風險。',
+    ab:'A/B 測試：將用戶隨機分為兩組服務，收集業務指標（轉換率）的統計顯著差異。'
+  };
+  const el=document.getElementById('m3-mode-hint');
+  if(el) el.textContent=HINTS[S.m3Mode]||'';
+}
+function m3Rollback(){
+  playSound('fail');
+  S.m3Traffic=0;
+  const inp=document.getElementById('m3-traffic'); if(inp) inp.value=0;
+  document.getElementById('m3-tv').textContent='0%';
+  document.getElementById('m3-rollback-msg').innerHTML=`<div class="text-orange-400 font-bold">⏪ 已回滾！流量 100% 切回 V1 舊模型。</div>`;
+  renderViz(3);
+}
+
+// ─── M4: Monitoring ───
+function renderM4Controls(p){
+  p.innerHTML=`
+    <h3 class="text-sm font-black text-emerald-400 mb-4">📡 宇宙環境模擬控制台</h3>
+    
+    <div class="mb-5">
+      <div class="text-xs font-bold text-sky-400 mb-2">① 星域掃描儀 → 資料漂移</div>
+      <div id="drag-wheel" style="width:100px;height:100px;margin:0 auto 0.5rem;touch-action:none;">
+        <svg viewBox="0 0 80 80" class="w-full h-full">
+          <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(56,189,248,0.2)" stroke-width="1"/>
+          <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(56,189,248,0.1)" stroke-width="1"/>
+          <line x1="40" y1="4" x2="40" y2="76" stroke="rgba(56,189,248,0.15)" stroke-width="1"/>
+          <line x1="4" y1="40" x2="76" y2="40" stroke="rgba(56,189,248,0.15)" stroke-width="1"/>
+          <polygon points="40,8 46,40 40,72 34,40" fill="rgba(56,189,248,0.5)" id="m4-arrow"/>
+          <circle cx="40" cy="40" r="4" fill="#38bdf8"/>
+        </svg>
+      </div>
+      <div class="text-[10px] text-slate-500 text-center mb-3">環繞拖曳雷達指標，改變隕石分佈</div>
+      <div class="grid grid-cols-3 gap-1 text-center bg-black/30 p-2 rounded-lg border border-slate-700/80">
+        <div><div class="text-[10px] text-slate-400">普通</div><div id="v1d" class="font-mono text-xs text-slate-300">${(S.live_P[0]*100).toFixed(0)}%</div></div>
+        <div class="border-x border-slate-700/60"><div class="text-[10px] text-cyan-400">冰晶</div><div id="v2d" class="font-mono text-xs text-cyan-400">${(S.live_P[1]*100).toFixed(0)}%</div></div>
+        <div><div class="text-[10px] text-fuchsia-400">磁暴</div><div id="v3d" class="font-mono text-xs text-fuchsia-400">${(S.live_P[2]*100).toFixed(0)}%</div></div>
+      </div>
+    </div>
+
+    <div class="mb-5">
+      <div class="text-xs font-bold text-orange-400 mb-2">② 感測器老化 → 模型漂移</div>
+      <div class="flex justify-between text-[10px] text-slate-400 mb-2"><span>未重訓時間</span><span id="m4-months-v" class="text-orange-400 font-bold">${S.months} 個月</span></div>
+      <input type="range" class="sl a" min="1" max="24" value="${S.months}" oninput="onM4Months(this.value)">
+    </div>
+
+    <div>
+      <div class="text-xs font-bold text-emerald-400 mb-2">③ 任務目標改變 → 概念漂移</div>
+      <div class="flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-700/50 rounded-lg">
+        <div class="flex-1">
+          <div class="text-xs text-slate-200">收集高能水晶任務</div>
+          <div class="text-[10px] text-slate-400 mt-1">舊模型：水晶 = 障礙物</div>
+        </div>
+        <label class="tog em"><input type="checkbox" onchange="onM4Concept(this.checked)" ${S.isConcept?'checked':''}><span class="tog-sl"></span></label>
+      </div>
+      <button onclick="adaptConcept()" class="btn btn-g w100 mt-3 text-xs ${S.isConcept&&!S.isAdapted?'':'hidden'}" id="m4-adapt-btn">🔄 部署新決策模型</button>
+    </div>
+
+    <button onclick="resetM4()" class="btn btn-s w100 mt-5 text-xs">↺ 重置環境</button>
+  `;
+  bindM4Wheel();
+}
+function onM4Months(v){ S.months=parseInt(v); document.getElementById('m4-months-v').textContent=v+' 個月'; updateM4State(); }
+function onM4Concept(c){ playSound('click'); S.isConcept=c; if(!c) S.isAdapted=false; updateM4State(); renderM4Controls(document.getElementById('panel-controls')); }
+function adaptConcept(){ playSound('success'); S.isAdapted=true; document.getElementById('m4-adapt-btn').classList.add('hidden'); updateM4State(); renderInfo(4); }
+function resetM4(){ playSound('click'); S.live_P=[0.2,0.5,0.3]; S.months=1; S.isConcept=false; S.isAdapted=false; S.wheelAngle=0; renderM4Controls(document.getElementById('panel-controls')); updateM4State(); }
+function updateM4State(){
+  let kl=0;
+  S.live_P.forEach((p,i)=>{ const q=Math.max([0.2,0.5,0.3][i],0.0001); kl+=Math.max(p,0.0001)*Math.log(Math.max(p,0.0001)/q); });
+  S.klScore=kl;
+  S.mse=0.05+Math.pow((S.months-1)/23,1.5)*1.35;
+  const wasCrashed = S.isCrashed;
+  S.isCrashed=(kl>0.80||S.mse>1.2);
+  
+  if (S.isCrashed && !wasCrashed) playSound('fail'); // Alarm
+  
+  const kld=document.getElementById('m4-kl'); if(kld) kld.textContent=kl.toFixed(3);
+  const msed=document.getElementById('m4-mse'); if(msed) msed.textContent=S.mse.toFixed(2);
+  renderInfo(4);
+  renderViz(4);
+}
+function bindM4Wheel(){
+  const wheel=document.getElementById('drag-wheel');
+  if(!wheel) return;
+  let dragging=false;
+  const getAngle=(x,y)=>{
+    const r=wheel.getBoundingClientRect();
+    const dx=x-(r.left+r.width/2), dy=y-(r.top+r.height/2);
+    let a=Math.atan2(dy,dx)*(180/Math.PI)+90;
+    if(a>180)a-=360; if(a<-180)a+=360;
+    return Math.max(-120,Math.min(120,a));
+  };
+  const apply=(a)=>{
+    S.wheelAngle=a;
+    const arrow=document.getElementById('m4-arrow'); if(arrow) arrow.setAttribute('transform',`rotate(${a},40,40)`);
+    const t=a/120;
+    if(t>=0){ S.live_P[0]=0.2+t*0.6; S.live_P[1]=0.5-t*0.4; S.live_P[2]=0.3-t*0.2; }
+    else { const at=Math.abs(t); S.live_P[0]=0.2-at*0.15; S.live_P[1]=0.5-at*0.45; S.live_P[2]=0.3+at*0.60; }
+    const sum=S.live_P[0]+S.live_P[1]+S.live_P[2];
+    S.live_P=S.live_P.map(v=>v/sum);
+    
+    document.getElementById('v1d').textContent=(S.live_P[0]*100).toFixed(0)+'%';
+    document.getElementById('v2d').textContent=(S.live_P[1]*100).toFixed(0)+'%';
+    document.getElementById('v3d').textContent=(S.live_P[2]*100).toFixed(0)+'%';
+    updateM4State();
+  };
+  wheel.addEventListener('mousedown',(e)=>{dragging=true;apply(getAngle(e.clientX,e.clientY));});
+  window.addEventListener('mousemove',(e)=>{if(dragging)apply(getAngle(e.clientX,e.clientY));});
+  window.addEventListener('mouseup',()=>{dragging=false;});
+  wheel.addEventListener('touchstart',(e)=>{dragging=true;apply(getAngle(e.touches[0].clientX,e.touches[0].clientY));},{passive:false});
+  window.addEventListener('touchmove',(e)=>{if(dragging){e.preventDefault();apply(getAngle(e.touches[0].clientX,e.touches[0].clientY));}},{passive:false});
+  window.addEventListener('touchend',()=>{dragging=false;});
+}
+
+// ─── M5: Retraining ───
+const M5_SCENARIOS=[
+  {
+    title:'緩慢漸變的隕石分佈',
+    desc:'宇宙塵埃比例每週微幅增加 2%，KL 散度緩慢上升。',
+    icon:'📅', correct:0,
+    opts:['滑動窗口 (近 90 天資料)','線上學習 (即時更新)','主動學習 (選樣標注)','遷移學習'],
+    exp:'緩慢漸變：滑動窗口讓模型持續聚焦最近資料，自動忘掉過時模式。'
+  },
+  {
+    title:'外星艦隊突然出現',
+    desc:'新型敵艦以全新拋物線軌跡移動，舊模型預測 MSE 飆升至 2.5。',
+    icon:'⚡', correct:1,
+    opts:['全量重訓','線上學習 (逐筆更新)','影子模式','調整閾值'],
+    exp:'突發劇烈漂移：線上學習能即時逐筆更新權重，毫秒級適應。'
+  },
+  {
+    title:'新星球的高成本標注',
+    desc:'大量未標注地形資料，需要專家標注，成本極高。',
+    icon:'🎯', correct:2,
+    opts:['全量人工標注','隨機抽樣','主動學習 (選最不確定樣本)','不標注'],
+    exp:'高成本：主動學習讓模型主動挑選決策邊界樣本，大幅節省人力。'
+  },
+  {
+    title:'導航手冊換新語言',
+    desc:'任務手冊從中文換成多語言，舊 NLP 模型需適應，但資料少。',
+    icon:'🧠', correct:3,
+    opts:['從零訓練','只用英文重訓','遷移學習 (微調預訓練)','忽略問題'],
+    exp:'少資料+新任務：微調多語言預訓練模型，比從頭訓練快且效果好。'
+  }
+];
+
+function renderM5Controls(p){
+  p.innerHTML=`
+    <h3 class="text-sm font-black text-rose-400 mb-4">🔄 選擇漂移情境</h3>
+    <div class="text-xs text-slate-400 mb-3">點擊情境卡，在右側解決危機：</div>
+    <div class="flex flex-col gap-2">
+      ${M5_SCENARIOS.map((sc,i)=>`
+        <div class="scn${S.m5Picked===i?' pick':''}" onclick="pickM5Scenario(${i})">
+          <div class="flex items-center gap-3">
+            <span class="text-xl">${sc.icon}</span>
+            <div>
+              <div class="text-xs font-bold" style="color:${S.m5Picked===i?'#e2e8f0':'#94a3b8'};">${sc.title}</div>
+              <div class="text-[10px] text-slate-500 mt-1">${sc.desc.substring(0,25)}...</div>
+            </div>
+            ${S.m5Scenarios[i]!==null?`<span class="ml-auto text-base">${S.m5Scenarios[i]?'✅':'❌'}</span>`:``}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="mt-5 bg-slate-900/60 border border-indigo-500/20 rounded-lg p-3 text-xs">
+      <span class="text-slate-400">完成情況：</span><span class="text-purple-400 font-bold">${S.m5Scenarios.filter(v=>v===true).length}/4</span> <span class="text-slate-400">正確</span>
+    </div>
+  `;
+}
+function pickM5Scenario(i){ playSound('click'); S.m5Picked=i; renderM5Controls(document.getElementById('panel-controls')); renderViz(5); }
+
+// ═══════════════════════════════════════════════════
+// VIZ (Center Panel)
+// ═══════════════════════════════════════════════════
+function renderViz(id){
+  const p=document.getElementById('panel-viz');
+  switch(id){
+    case 0: renderM0Viz(p); break;
+    case 1: renderM1Viz(p); break;
+    case 2: renderM2Viz(p); break;
+    case 3: renderM3Viz(p); break;
+    case 4: renderM4Viz(p); break;
+    case 5: renderM5Viz(p); break;
+  }
+}
+
+function renderM0Viz(p){
+  p.innerHTML=`
+    <h4 class="text-sm font-bold text-sky-400 mb-4">MLOps DataOps 流程圖</h4>
+    <div class="flex flex-col gap-2">
+      ${[['🗄️ 原始資料','Raw Data Ingestion','sky'],['🔍 Great Expectations','Schema & Quality Validation','sky'],['🔧 特徵工程','Feature Engineering + 特徵商店','sky'],['✂️ 時序資料切分','Train / Val / Test Split (無洩漏)','sky'],['📦 DVC 版本控制','Data Versioning + Lineage 記錄','sky'],['🧪 Model Training','特徵已鎖定版本 → 訓練','ind']].map(([a,b,c],i)=>`
+        <div class="flex items-center gap-3">
+          <div class="flex-1 bg-slate-900/70 border border-${c==='sky'?'sky-400/30':'indigo-400/30'} rounded-lg p-3">
+            <div class="text-xs font-bold text-${c==='sky'?'sky-400':'indigo-400'}">${a}</div>
+            <div class="text-[10px] text-slate-400 mt-1">${b}</div>
+          </div>
+        </div>
+        ${i<5?`<div class="text-center text-slate-600 text-sm py-1">↓</div>`:''}
+      `).join('')}
+    </div>
+    <div class="mt-5 p-4 bg-emerald-400/10 border border-emerald-400/20 rounded-lg">
+      <div class="text-xs font-bold text-emerald-400 mb-1">💡 關鍵要點</div>
+      <div class="text-xs text-slate-400 leading-relaxed">DVC 像 Git 管理資料集版本 · 特徵商店防止 Training-Serving Skew · 時序切分防止 Data Leakage</div>
+    </div>
+  `;
+}
+
+function renderM1Viz(p){
+  const bestAcc=S.m1Runs.length>0?S.m1Runs[S.m1BestIdx].acc:null;
+  p.innerHTML=`
+    <h4 class="text-sm font-bold text-purple-400 mb-4">📋 MLflow 實驗記錄 (${S.m1Runs.length} Runs)</h4>
+    ${S.m1Runs.length===0?`<div class="text-slate-500 text-sm text-center py-10">尚無實驗記錄，點擊左側開始訓練。</div>`:`
+    <div class="bg-black/40 border border-indigo-500/20 rounded-lg overflow-hidden">
+      <div class="exp-row bg-slate-800/80 font-bold text-[10px] text-slate-400">
+        <span>ID</span><span>LR</span><span>BS</span><span>Epochs</span><span>Accuracy</span>
+      </div>
+      ${S.m1Runs.slice().reverse().map((r,i)=>{
+        const isB=r===S.m1Runs[S.m1BestIdx];
+        return `<div class="exp-row${isB?' fadein':''}" style="${isB?'background:rgba(52,211,153,0.1);':''}">
+          <span class="font-mono text-[10px] ${isB?'text-emerald-400':'text-slate-400'}">${r.id}${isB?'⭐':''}</span>
+          <span class="font-mono text-purple-300 text-[10px]">${r.lr.toFixed(4)}</span>
+          <span class="font-mono text-purple-300 text-[10px]">${r.bs}</span>
+          <span class="font-mono text-purple-300 text-[10px]">${r.ep}</span>
+          <span class="font-mono font-bold text-xs ${r.acc>0.88?'text-emerald-400':r.acc>0.80?'text-orange-400':'text-rose-400'}">${r.acc}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    ${bestAcc?`<div class="mt-4 p-3 bg-emerald-400/10 border border-emerald-400/30 rounded-lg">
+      <span class="text-xs text-emerald-300">⭐ 最佳 Accuracy = <b>${bestAcc}</b> ${bestAcc>0.90?'→ 表現優異，可推送 Registry':'→ 建議繼續調整'}</span>
+    </div>`:''}
+    `}
+  `;
+}
+
+function renderM2Viz(p){
+  const STAGES=['📊 資料驗證','🔧 自動重訓','🧪 回歸測試',`🔒 門禁 ≥${S.m2Thresh.toFixed(2)}`,'🚀 部署'];
+  p.innerHTML=`
+    <h4 class="text-sm font-bold text-orange-400 mb-5">⚙️ CI/CD Pipeline</h4>
+    <div class="flex flex-wrap items-center gap-2 mb-8">
+      ${STAGES.map((s,i)=>`
+        <div class="flex items-center gap-2">
+          <div class="bg-slate-800/80 border border-orange-400/30 rounded-lg py-2 px-3 text-center min-w-[70px]">
+            <div class="text-xs whitespace-nowrap">${s}</div>
+          </div>
+          ${i<4?`<span class="text-slate-500">→</span>`:''}
+        </div>
+      `).join('')}
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+      ${[['觸發條件','資料漂移 / 定時排程','sky'],['測試策略','資料驗證 + 效能回歸','amb'],['門禁條件','Acc ≥ '+S.m2Thresh.toFixed(2),'ros'],['部署目標','Staging → Production','em']].map(([t,v,c])=>`
+        <div class="bg-slate-900/70 border border-${c==='sky'?'sky-400':c==='amb'?'orange-400':c==='ros'?'rose-400':'emerald-400'}/30 rounded-lg p-3">
+          <div class="text-[10px] font-bold text-${c==='sky'?'sky-400':c==='amb'?'orange-400':c==='ros'?'rose-400':'emerald-400'} mb-1">${t}</div>
+          <div class="text-xs text-slate-400">${v}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderM3Viz(p){
+  const v1Pct=100-S.m3Traffic, v2Pct=S.m3Traffic;
+  const col={'canary':'#818cf8','bluegreen':'#34d399','shadow':'#94a3b8','ab':'#fb923c'}[S.m3Mode]||'#818cf8';
+  p.innerHTML=`
+    <h4 class="text-sm font-bold text-indigo-400 mb-5">🚀 流量分配視覺化</h4>
+    <div class="mb-6">
+      <div class="flex justify-between text-xs text-slate-400 mb-2">
+        <span>🔵 V1 舊模型 (${v1Pct}%)</span>
+        <span>🟢 V2 新模型 (${v2Pct}%)</span>
+      </div>
+      <div class="h-8 bg-slate-900 border border-indigo-500/30 rounded-lg overflow-hidden flex">
+        <div style="width:${v1Pct}%;" class="bg-gradient-to-r from-slate-800 to-blue-800 transition-all duration-500 flex items-center justify-center">
+          ${v1Pct>15?`<span class="text-xs font-bold text-blue-200">${v1Pct}%</span>`:``}
+        </div>
+        <div style="width:${v2Pct}%;" class="bg-gradient-to-r from-teal-800 to-emerald-600 transition-all duration-500 flex items-center justify-center">
+          ${v2Pct>15?`<span class="text-xs font-bold text-emerald-200">${v2Pct}%</span>`:``}
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+      <div class="bg-slate-900/70 border border-sky-400/30 rounded-lg p-4">
+        <div class="text-xs text-sky-400 font-bold mb-3">🔵 V1 舊模型</div>
+        <div class="text-xs text-slate-400 mb-1">Accuracy: <b class="text-sky-300">0.887</b></div>
+        <div class="text-xs text-slate-400 mb-1">Latency: <b class="text-sky-300">12ms</b></div>
+        <div class="text-xs text-slate-400">Error Rate: <b class="text-sky-300">1.2%</b></div>
+      </div>
+      <div class="bg-slate-900/70 border border-emerald-400/30 rounded-lg p-4">
+        <div class="text-xs text-emerald-400 font-bold mb-3">🟢 V2 新模型</div>
+        <div class="text-xs text-slate-400 mb-1">Accuracy: <b class="text-emerald-300">0.923</b> ✅</div>
+        <div class="text-xs text-slate-400 mb-1">Latency: <b class="text-emerald-300">15ms</b></div>
+        <div class="text-xs text-slate-400">Error Rate: <b class="text-emerald-300">0.8%</b> ✅</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderM4Viz(p){
+  const klBad=S.klScore>0.1, mseBad=S.mse>0.5, cptBad=S.isConcept&&!S.isAdapted;
+  const errs=[klBad,mseBad,cptBad].filter(Boolean).length;
+  p.innerHTML=`
+    <h4 class="text-sm font-bold text-emerald-400 mb-4">📡 漂移監控儀表板</h4>
+    <div class="grid grid-cols-3 gap-2 mb-5">
+      <div class="mc">
+        <div class="text-[10px] text-sky-400 font-bold mb-1">① 資料漂移</div>
+        <div id="m4-kl" class="text-lg font-mono font-bold ${klBad?'text-rose-400':'text-sky-400'}">${S.klScore.toFixed(3)}</div>
+        <div class="text-[9px] text-slate-500">KL (閾值 0.1)</div>
+        <div class="sdot ${klBad?'err':'ok'} mt-1"></div>
+      </div>
+      <div class="mc">
+        <div class="text-[10px] text-orange-400 font-bold mb-1">② 模型漂移</div>
+        <div id="m4-mse" class="text-lg font-mono font-bold ${mseBad?'text-rose-400':'text-orange-400'}">${S.mse.toFixed(2)}</div>
+        <div class="text-[9px] text-slate-500">MSE (閾值 0.5)</div>
+        <div class="sdot ${mseBad?'err':'ok'} mt-1"></div>
+      </div>
+      <div class="mc">
+        <div class="text-[10px] text-emerald-400 font-bold mb-1">③ 概念漂移</div>
+        <div class="text-sm font-bold mt-1 ${cptBad?'text-rose-400':S.isAdapted?'text-emerald-400':'text-slate-500'}">${!S.isConcept?'無異常':S.isAdapted?'已適應':'未適應！'}</div>
+        <div class="text-[9px] text-slate-500 mt-1">P(Y|X)</div>
+        <div class="sdot ${cptBad?'err':S.isConcept&&S.isAdapted?'ok':'dim'} mt-1"></div>
+      </div>
+    </div>
+    <div class="mb-4 p-4 rounded-xl ${S.isCrashed?'bg-rose-400/10 border border-rose-400/40':errs>0?'bg-orange-400/10 border border-orange-400/30':'bg-emerald-400/10 border border-emerald-400/30'}">
+      <div class="text-sm font-bold ${S.isCrashed?'text-rose-400':errs>0?'text-orange-400':'text-emerald-400'}">${S.isCrashed?'💥 護盾崩潰！模型嚴重失效':errs>0?`⚠️ 警報：偵測到 ${errs} 項漂移`:'✅ 航線穩定，巡航中'}</div>
+      <div class="text-xs text-slate-400 mt-2 leading-relaxed">${S.isCrashed?'指標嚴重超標，需立即觸發重訓並重新部署':errs>0?'建議啟動 MLOps 重訓 Pipeline':'目前無偵測到異常，預測效能良好'}</div>
+    </div>
+  `;
+}
+
+function renderM5Viz(p){
+  if(S.m5Picked===-1){
+    p.innerHTML=`<div class="text-center py-12"><div class="text-5xl mb-4">👈</div><div class="text-slate-400 text-sm">請從左側點選一個漂移情境<br>然後在此選擇最佳解決策略</div></div>`;
+    return;
+  }
+  const sc=M5_SCENARIOS[S.m5Picked];
+  p.innerHTML=`
+    <div class="fadein">
+      <h4 class="text-sm font-bold text-rose-400 mb-2">${sc.icon} ${sc.title}</h4>
+      <div class="text-xs text-slate-300 mb-5 p-3 bg-slate-900/60 border border-indigo-500/20 rounded-lg leading-relaxed">${sc.desc}</div>
+      <div class="text-xs font-bold text-slate-200 mb-3">選擇最佳再訓練策略：</div>
+      <div class="flex flex-col gap-2">
+        ${sc.opts.map((o,i)=>{
+          const picked=S.m5Scenarios[S.m5Picked]!==null;
+          const isCorrect=i===sc.correct;
+          let cls='sto';
+          if(picked){
+            const wasPickedWrong=!isCorrect && S.m5Scenarios[S.m5Picked]===false && i===S.m5LastPick;
+            if(isCorrect) cls='sto ok'; else if(wasPickedWrong) cls='sto bad';
+          }
+          return `<button class="${cls}" onclick="answerM5(${i})" ${picked?'disabled':''}>
+            ${isCorrect&&picked?'✅ ':''}${o}
+          </button>`;
+        }).join('')}
+      </div>
+      ${S.m5Scenarios[S.m5Picked]!==null?`
+        <div class="mt-4 p-4 rounded-lg text-xs leading-relaxed border ${S.m5Scenarios[S.m5Picked]?'bg-emerald-400/10 border-emerald-400/30 text-emerald-300':'bg-rose-400/10 border-rose-400/30 text-rose-300'}">
+          ${S.m5Scenarios[S.m5Picked]?'✅':'❌'} ${sc.exp}
+        </div>
+      `:''}
+    </div>
+  `;
+}
+function answerM5(optIdx){
+  const sc=M5_SCENARIOS[S.m5Picked];
+  S.m5LastPick=optIdx;
+  S.m5Scenarios[S.m5Picked]=(optIdx===sc.correct);
+  if(optIdx===sc.correct) playSound('success'); else playSound('fail');
+  renderViz(5);
+  renderM5Controls(document.getElementById('panel-controls'));
+}
+
+// ═══════════════════════════════════════════════════
+// INFO PANEL (Right)
+// ═══════════════════════════════════════════════════
+function renderInfo(id){
+  const p=document.getElementById('panel-info');
+  if(!p) return;
+  const m=MISSIONS[id];
+  const colors={sky:'#38bdf8',pur:'#a78bfa',amb:'#fb923c',ind:'#818cf8',em:'#34d399',ros:'#fb7185'};
+  const col=colors[m.color]||'#a78bfa';
+  
+  if(id===4){
+    p.innerHTML=`
+      <div class="text-xs font-bold mb-4" style="color:${col};">📋 本關核心概念</div>
+      ${m.concepts.map(c=>`
+        <div class="mb-3 p-3 bg-slate-900/70 border border-indigo-500/15 rounded-lg">
+          <div class="text-xs font-bold text-slate-200 mb-1">${c.icon} ${c.k}</div>
+          <div class="text-[10px] text-slate-400 leading-relaxed">${c.v}</div>
+        </div>
+      `).join('')}
+      <div class="mt-4 p-3 bg-purple-500/10 border border-purple-500/25 rounded-lg">
+        <div class="text-[10px] font-bold text-purple-400 mb-1">🎓 學習目標</div>
+        <div class="text-[10px] text-slate-400 leading-relaxed">操作三種漂移類型 → 觀察指標與 3D 護盾狀態 → 理解偵測方法</div>
+      </div>
+    `;
+    return;
+  }
+  
+  p.innerHTML=`
+    <div class="text-xs font-bold mb-4" style="color:${col};">📋 本關核心概念</div>
+    ${m.concepts.map(c=>`
+      <div class="mb-3 p-3 bg-slate-900/70 border border-indigo-500/15 rounded-lg">
+        <div class="text-xs font-bold text-slate-200 mb-1">${c.icon} ${c.k}</div>
+        <div class="text-[10px] text-slate-400 leading-relaxed">${c.v}</div>
+      </div>
+    `).join('')}
+    <div class="mt-4 p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+      <div class="text-[10px] font-bold text-purple-400 mb-1">💡 學習提示</div>
+      <div class="text-[10px] text-slate-400 leading-relaxed">互動玩過控制台後，按上方「結算測驗」鞏固理解，答對可獲得 XP。</div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════
+// QUIZ SYSTEM
+// ═══════════════════════════════════════════════════
+let QS={mission:-1, idx:0, correct:0, total:3, done:false};
+
+function startQuiz(){
+  playSound('click');
+  const m=MISSIONS[S.curMission];
+  QS={mission:S.curMission, idx:0, correct:0, total:m.quizzes.length, done:false};
+  renderQuizQuestion();
+  openModal('m-quiz');
+}
+
+function renderQuizQuestion(){
+  const m=MISSIONS[QS.mission];
+  const q=m.quizzes[QS.idx];
+  document.getElementById('q-dots').innerHTML=m.quizzes.map((_,i)=>`
+    <span class="inline-block w-2.5 h-2.5 rounded-full ${i<QS.idx?'bg-emerald-400':i===QS.idx?'bg-purple-500':'bg-slate-600'}"></span>
+  `).join('');
+  document.getElementById('q-progress').textContent=`${QS.idx+1} / ${QS.total}`;
+  document.getElementById('q-avatar').textContent=q.avatar;
+  document.getElementById('q-speech').textContent=q.speech;
+  document.getElementById('q-question').textContent=q.q;
+  
+  const opts=document.getElementById('q-options'); opts.innerHTML='';
+  q.opts.forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.className='qo'; b.textContent=o;
+    b.onclick=()=>answerQuiz(i, q.ans, q.fb, opts);
+    opts.appendChild(b);
+  });
+  document.getElementById('q-feedback').className='hidden';
+  document.getElementById('q-next').classList.add('hidden');
+  document.getElementById('q-finish').classList.add('hidden');
+}
+
+function answerQuiz(idx, correct, fb, opts){
+  Array.from(opts.children).forEach(b=>b.disabled=true);
+  opts.children[idx].classList.add(idx===correct?'ok':'bad');
+  
+  if(idx===correct){ 
+    playSound('success');
+    QS.correct++; 
+  } else { 
+    playSound('fail');
+    opts.children[correct].classList.add('ok'); 
+  }
+  
+  const fbEl=document.getElementById('q-feedback');
+  fbEl.textContent=fb;
+  fbEl.className=`mt-4 p-4 rounded-lg text-sm leading-relaxed border ${idx===correct?'bg-emerald-400/10 border-emerald-400/30 text-emerald-300':'bg-rose-400/10 border-rose-400/30 text-rose-300'}`;
+  
+  if(QS.idx<QS.total-1) document.getElementById('q-next').classList.remove('hidden');
+  else document.getElementById('q-finish').classList.remove('hidden');
+}
+
+document.getElementById('q-next').onclick=()=>{ playSound('click'); QS.idx++; renderQuizQuestion(); };
+
+document.getElementById('q-finish').onclick=()=>{
+  playSound('click');
+  closeModal('m-quiz');
+  setTimeout(showMissionComplete, 300);
+};
+
+function showMissionComplete(){
+  playSound('success'); // Big success sound
+  const m=MISSIONS[QS.mission];
+  const xpGain=Math.round(m.xp*(QS.correct/QS.total));
+  S.xp+=xpGain;
+  S.done.add(QS.mission);
+  if(QS.mission+1<MISSIONS.length) S.unlocked.add(QS.mission+1);
+  
+  document.getElementById('mc-emoji').textContent=['📊','🧪','⚙️','🚀','📡','🔄'][QS.mission];
+  document.getElementById('mc-subtitle').textContent=m.name;
+  document.getElementById('mc-xp').textContent=`+${xpGain}`;
+  document.getElementById('mc-score').textContent=`${Math.round(QS.correct/QS.total*100)}%`;
+  document.getElementById('mc-summary').innerHTML=m.summary;
+  
+  if(QS.mission+1<MISSIONS.length){
+    document.getElementById('mc-unlock-msg').textContent=`🔓 已解鎖下一關：${MISSIONS[QS.mission+1].name}`;
+    const nb=document.getElementById('mc-next-btn');
+    nb.classList.remove('hidden');
+    nb.onclick=()=>{ closeMissionComplete(); startMission(QS.mission+1); };
+  } else {
+    document.getElementById('mc-unlock-msg').textContent='🎉 恭喜！你已完成全部 6 關 MLOps 星際訓練！';
+    document.getElementById('mc-next-btn').classList.add('hidden');
+  }
+  openModal('m-complete');
+}
+
+function closeMissionComplete(){
+  closeModal('m-complete');
+  exitMission();
+}
+
+// ═══════════════════════════════════════════════════
+// REFERENCE MODAL
+// ═══════════════════════════════════════════════════
+function openRefModal(){
+  playSound('click');
+  const body=document.getElementById('ref-body');
+  body.innerHTML=REFERENCE_DATA.map(sec=>`
+    <div>
+      <div class="text-sm font-bold text-purple-400 border-b border-indigo-500/20 pb-2 mb-3">${sec.h}</div>
+      ${sec.items.map(([k,v])=>`<div class="flex flex-col sm:flex-row sm:gap-4 mb-2"><span class="text-indigo-300 font-bold sm:min-w-[140px]">${k}</span><span class="text-slate-400 text-xs sm:text-sm">${v}</span></div>`).join('')}
+    </div>
+  `).join('');
+  openModal('m-ref');
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+init3D();
+</script>
+</body>
+</html>
