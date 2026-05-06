@@ -1562,7 +1562,17 @@ function answerQuiz(idx, correct, fb, opts){
   }
   
   const fbEl=document.getElementById('q-feedback');
-  fbEl.textContent=fb;
+  
+  // 移除資料庫中寫死的「✅ 正確！」前綴
+  const cleanFb = fb.replace('✅ 正確！', '').trim();
+  
+  if (idx === correct) {
+    fbEl.innerHTML = `<b class="text-emerald-400">✅ 答對了！</b> ${cleanFb}`;
+  } else {
+    const correctText = opts.children[correct].textContent;
+    fbEl.innerHTML = `<b class="text-rose-400">❌ 答錯了！</b> 正確應為：<span class="text-slate-200 font-bold">${correctText}</span><br><br><span class="opacity-80">${cleanFb}</span>`;
+  }
+  
   fbEl.className=`mt-4 p-4 rounded-lg text-sm leading-relaxed border ${idx===correct?'bg-emerald-400/10 border-emerald-400/30 text-emerald-300':'bg-rose-400/10 border-rose-400/30 text-rose-300'}`;
   
   if(QS.idx<QS.total-1) document.getElementById('q-next').classList.remove('hidden');
